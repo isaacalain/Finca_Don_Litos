@@ -4,6 +4,7 @@ import { Cabanas } from './Cabanas';
 import Admin from './Admin';
 import Login from './Login';
 
+
 export default function App() {
   // Inicializamos el estado comprobando localStorage directamente
   const [autenticado, setAutenticado] = useState(() => {
