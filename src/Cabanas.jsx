@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 export const Cabanas = () => {
   const [cabanas, setCabanas] = useState([]);
   const [selectedCabana, setSelectedCabana] = useState(null);
+  const [detailCabana, setDetailCabana] = useState(null); // Bungalow seleccionado para ver detalle/carrusel
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -12,7 +15,7 @@ export const Cabanas = () => {
   });
   const [mensaje, setMensaje] = useState('');
 
-  // 1. Cargar las cabañas/bungalows desde el Backend
+  // 1. Cargar bungalows desde el Backend
   useEffect(() => {
     fetch('http://localhost:5000/api/cabanas')
       .then((res) => res.json())
@@ -20,7 +23,31 @@ export const Cabanas = () => {
       .catch((err) => console.error('Error al cargar bungalows:', err));
   }, []);
 
-  // Manejar el cambio en los inputs del formulario de reserva
+  // Abrir modal de detalle
+  const handleOpenDetail = (cabana) => {
+    setDetailCabana(cabana);
+    setCurrentImageIndex(0);
+  };
+
+  // Obtener array de imágenes del bungalow (soporta URLs separadas por coma)
+  const getImages = (cabana) => {
+    if (!cabana || !cabana.imagen_url) {
+      return ['https://via.placeholder.com/600x400?text=Sin+Imagen'];
+    }
+    return cabana.imagen_url.split(',').map((url) => url.trim());
+  };
+
+  const nextImage = () => {
+    const images = getImages(detailCabana);
+    setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    const images = getImages(detailCabana);
+    setCurrentImageIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length);
+  };
+
+  // Manejar el cambio en los inputs del formulario
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -94,39 +121,109 @@ export const Cabanas = () => {
       {mensaje && <div style={styles.alertSuccess}>{mensaje}</div>}
 
       <div style={styles.grid}>
-        {cabanas.map((cabana) => (
-          <div key={cabana.id_bungalow} style={styles.card}>
-            <img
-              src={cabana.imagen_url || 'https://via.placeholder.com/300x200?text=Sin+Imagen'}
-              alt={cabana.nombre}
-              style={styles.cardImage}
-            />
-            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-              <h3 style={{ color: '#2e4d25', marginTop: 0, marginBottom: '8px' }}>
-                {cabana.nombre}
-              </h3>
-              <p style={{ color: '#555', fontSize: '0.9rem', marginBottom: '12px', flexGrow: 1 }}>
-                {cabana.descripcion}
+        {cabanas.map((cabana) => {
+          const images = getImages(cabana);
+          return (
+            <div
+              key={cabana.id_bungalow}
+              style={styles.card}
+              onClick={() => handleOpenDetail(cabana)}
+            >
+              <div style={styles.imageContainer}>
+                <img
+                  src={images[0]}
+                  alt={cabana.nombre}
+                  style={styles.cardImage}
+                />
+              </div>
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                <h3 style={{ color: '#2e4d25', marginTop: 0, marginBottom: '8px' }}>
+                  {cabana.nombre}
+                </h3>
+                <p style={{ color: '#555', fontSize: '0.9rem', marginBottom: '12px', flexGrow: 1 }}>
+                  {cabana.descripcion}
+                </p>
+                <p style={{ margin: '4px 0' }}>
+                  <strong>Capacidad:</strong> Hasta {cabana.capacidad} personas
+                </p>
+                <p style={{ fontSize: '1.2rem', color: '#5a4226', fontWeight: 'bold', margin: '8px 0 16px 0' }}>
+                  ₡{Number(cabana.precio_noche || 0).toLocaleString('es-CR')}
+                  <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}> / noche</span>
+                </p>
+                <button
+                  style={styles.btnPrimary}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Evita que abra el modal de detalle al hacer clic en reservar
+                    setSelectedCabana(cabana);
+                  }}
+                >
+                  Reservar Cabaña
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Modal 1: Detalle y Carrusel de Imágenes */}
+      {detailCabana && (
+        <div style={styles.modalOverlay} onClick={() => setDetailCabana(null)}>
+          <div style={styles.detailModalContent} onClick={(e) => e.stopPropagation()}>
+            <button style={styles.closeBtn} onClick={() => setDetailCabana(null)}>
+              ✕
+            </button>
+
+            {/* Carrusel de fotos */}
+            <div style={styles.carouselContainer}>
+              <img
+                src={getImages(detailCabana)[currentImageIndex]}
+                alt={detailCabana.nombre}
+                style={styles.carouselImage}
+              />
+              {getImages(detailCabana).length > 1 && (
+                <>
+                  <button style={{ ...styles.carouselBtn, left: '10px' }} onClick={prevImage}>
+                    ❮
+                  </button>
+                  <button style={{ ...styles.carouselBtn, right: '10px' }} onClick={nextImage}>
+                    ❯
+                  </button>
+                  <div style={styles.imageCounter}>
+                    {currentImageIndex + 1} / {getImages(detailCabana).length}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Información del Bungalow */}
+            <div style={{ padding: '20px' }}>
+              <h2 style={{ color: '#2e4d25', marginTop: 0 }}>{detailCabana.nombre}</h2>
+              <p style={{ color: '#555', fontSize: '1rem', lineHeight: '1.5' }}>
+                {detailCabana.descripcion}
               </p>
-              <p style={{ margin: '4px 0' }}>
-                <strong>Capacidad:</strong> Hasta {cabana.capacidad} personas
+              <p><strong>Capacidad:</strong> Hasta {detailCabana.capacidad} personas</p>
+              <p style={{ fontSize: '1.3rem', color: '#5a4226', fontWeight: 'bold' }}>
+                ₡{Number(detailCabana.precio_noche || 0).toLocaleString('es-CR')} / noche
               </p>
-              <p style={{ fontSize: '1.2rem', color: '#5a4226', fontWeight: 'bold', margin: '8px 0 16px 0' }}>
-                ₡{Number(cabana.precio_noche || 0).toLocaleString('es-CR')}
-                <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}> / noche</span>
-              </p>
-              <button style={styles.btnPrimary} onClick={() => setSelectedCabana(cabana)}>
-                Reservar Cabaña
+
+              <button
+                style={{ ...styles.btnPrimary, marginTop: '10px' }}
+                onClick={() => {
+                  setSelectedCabana(detailCabana);
+                  setDetailCabana(null);
+                }}
+              >
+                Reservar Ahora
               </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
-      {/* Modal / Formulario de Reserva */}
+      {/* Modal 2: Formulario de Reserva */}
       {selectedCabana && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
+        <div style={styles.modalOverlay} onClick={() => setSelectedCabana(null)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ color: '#2e4d25', marginTop: 0 }}>
               Reservar {selectedCabana.nombre}
             </h3>
@@ -234,22 +331,34 @@ const styles = {
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '20px'
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: '24px',
+    justifyContent: 'center'
   },
   card: {
     border: '1px solid #e0e0e0',
     borderRadius: '12px',
     overflow: 'hidden',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+    boxShadow: '0 4px 8px rgba(0,0,0,0.08)',
     backgroundColor: '#fff',
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    cursor: 'pointer',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+  },
+  imageContainer: {
+    backgroundColor: '#1b2a1a',
+    height: '200px',
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden'
   },
   cardImage: {
     width: '100%',
-    height: '200px',
-    objectFit: 'cover',
+    height: '100%',
+    objectFit: 'contain',
     display: 'block'
   },
   btnPrimary: {
@@ -287,7 +396,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -301,6 +410,67 @@ const styles = {
     width: '90%',
     maxHeight: '90vh',
     overflowY: 'auto'
+  },
+  detailModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: '12px',
+    maxWidth: '650px',
+    width: '90%',
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    position: 'relative'
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: '12px',
+    right: '12px',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '50%',
+    width: '32px',
+    height: '32px',
+    cursor: 'pointer',
+    zIndex: 10,
+    fontSize: '1rem'
+  },
+  carouselContainer: {
+    position: 'relative',
+    height: '360px',
+    backgroundColor: '#1b2a1a',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  carouselImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain'
+  },
+  carouselBtn: {
+    position: 'absolute',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '50%',
+    width: '40px',
+    height: '40px',
+    cursor: 'pointer',
+    fontSize: '1.2rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  imageCounter: {
+    position: 'absolute',
+    bottom: '10px',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    color: '#fff',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '0.8rem'
   },
   label: {
     display: 'block',
