@@ -3,19 +3,20 @@ import React, { useState, useEffect } from 'react';
 export const Cabanas = () => {
   const [cabanas, setCabanas] = useState([]);
   const [selectedCabana, setSelectedCabana] = useState(null);
-  const [detailCabana, setDetailCabana] = useState(null); // Bungalow seleccionado para ver detalle/carrusel
+  const [detailCabana, setDetailCabana] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const [formData, setFormData] = useState({
     nombre: '',
+    apellidos: '',
     email: '',
     telefono: '',
-    fechaCheckin: '',
-    fechaCheckout: ''
+    fecha_checkin: '',
+    fecha_checkout: ''
   });
   const [mensaje, setMensaje] = useState('');
 
-  // 1. Cargar bungalows desde el Backend
+  // Cargar bungalows desde el Backend
   useEffect(() => {
     fetch('http://localhost:5000/api/cabanas')
       .then((res) => res.json())
@@ -23,13 +24,11 @@ export const Cabanas = () => {
       .catch((err) => console.error('Error al cargar bungalows:', err));
   }, []);
 
-  // Abrir modal de detalle
   const handleOpenDetail = (cabana) => {
     setDetailCabana(cabana);
     setCurrentImageIndex(0);
   };
 
-  // Obtener array de imágenes del bungalow (soporta URLs separadas por coma)
   const getImages = (cabana) => {
     if (!cabana || !cabana.imagen_url) {
       return ['https://via.placeholder.com/600x400?text=Sin+Imagen'];
@@ -47,7 +46,6 @@ export const Cabanas = () => {
     setCurrentImageIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length);
   };
 
-  // Manejar el cambio en los inputs del formulario
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -55,17 +53,15 @@ export const Cabanas = () => {
     });
   };
 
-  // Calcular el total de la estancia
   const calcularTotal = () => {
-    if (!formData.fechaCheckin || !formData.fechaCheckout || !selectedCabana) return 0;
-    const checkin = new Date(formData.fechaCheckin);
-    const checkout = new Date(formData.fechaCheckout);
+    if (!formData.fecha_checkin || !formData.fecha_checkout || !selectedCabana) return 0;
+    const checkin = new Date(formData.fecha_checkin);
+    const checkout = new Date(formData.fecha_checkout);
     const diffTime = checkout - checkin;
     const dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return dias > 0 ? dias * Number(selectedCabana.precio_noche) : 0;
   };
 
-  // Enviar el formulario de reserva
   const handleSubmit = async (e) => {
     e.preventDefault();
     const total = calcularTotal();
@@ -81,11 +77,12 @@ export const Cabanas = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cabana_id: selectedCabana.id_bungalow,
-          nombre_cliente: formData.nombre,
-          email_cliente: formData.email,
-          telefono_cliente: formData.telefono,
-          fecha_checkin: formData.fechaCheckin,
-          fecha_checkout: formData.fechaCheckout,
+          nombre: formData.nombre,
+          apellidos: formData.apellidos,
+          email: formData.email,
+          telefono: formData.telefono,
+          fecha_checkin: formData.fecha_checkin,
+          fecha_checkout: formData.fecha_checkout,
           total
         })
       });
@@ -97,10 +94,11 @@ export const Cabanas = () => {
         setSelectedCabana(null);
         setFormData({
           nombre: '',
+          apellidos: '',
           email: '',
           telefono: '',
-          fechaCheckin: '',
-          fechaCheckout: ''
+          fecha_checkin: '',
+          fecha_checkout: ''
         });
       } else {
         alert('Error al realizar la reserva: ' + resData.error);
@@ -113,9 +111,17 @@ export const Cabanas = () => {
 
   return (
     <div style={styles.container}>
+      {/* Encabezado Estilizado */}
       <header style={styles.header}>
+        <span style={styles.headerBadge}> </span>
         <h1 style={styles.title}>Finca Don Litos</h1>
-        <p style={styles.subtitle}>Piscina común | Parqueo | Pet Friendly</p>
+        <div style={styles.subtitleWrapper}>
+          <span style={styles.subtitleTag}> Piscina común</span>
+          <span style={styles.subtitleDot}>•</span>
+          <span style={styles.subtitleTag}> Parqueo privado</span>
+          <span style={styles.subtitleDot}>•</span>
+          <span style={styles.subtitleTag}> Pet Friendly</span>
+        </div>
       </header>
 
       {mensaje && <div style={styles.alertSuccess}>{mensaje}</div>}
@@ -136,24 +142,25 @@ export const Cabanas = () => {
                   style={styles.cardImage}
                 />
               </div>
-              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                <h3 style={{ color: '#2e4d25', marginTop: 0, marginBottom: '8px' }}>
-                  {cabana.nombre}
-                </h3>
-                <p style={{ color: '#555', fontSize: '0.9rem', marginBottom: '12px', flexGrow: 1 }}>
-                  {cabana.descripcion}
-                </p>
-                <p style={{ margin: '4px 0' }}>
-                  <strong>Capacidad:</strong> Hasta {cabana.capacidad} personas
-                </p>
-                <p style={{ fontSize: '1.2rem', color: '#5a4226', fontWeight: 'bold', margin: '8px 0 16px 0' }}>
-                  ₡{Number(cabana.precio_noche || 0).toLocaleString('es-CR')}
-                  <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}> / noche</span>
-                </p>
+              <div style={styles.cardBody}>
+                <h3 style={styles.cardTitle}>{cabana.nombre}</h3>
+                <p style={styles.cardDesc}>{cabana.descripcion}</p>
+                
+                <div style={styles.capacityBadge}>
+                  👥 Hasta <strong>{cabana.capacidad} personas</strong>
+                </div>
+
+                <div style={styles.priceContainer}>
+                  <span style={styles.priceAmount}>
+                    ₡{Number(cabana.precio_noche || 0).toLocaleString('es-CR')}
+                  </span>
+                  <span style={styles.priceUnit}> / noche</span>
+                </div>
+
                 <button
                   style={styles.btnPrimary}
                   onClick={(e) => {
-                    e.stopPropagation(); // Evita que abra el modal de detalle al hacer clic en reservar
+                    e.stopPropagation();
                     setSelectedCabana(cabana);
                   }}
                 >
@@ -165,7 +172,7 @@ export const Cabanas = () => {
         })}
       </div>
 
-      {/* Modal 1: Detalle y Carrusel de Imágenes */}
+      {/* Modal 1: Detalle y Carrusel */}
       {detailCabana && (
         <div style={styles.modalOverlay} onClick={() => setDetailCabana(null)}>
           <div style={styles.detailModalContent} onClick={(e) => e.stopPropagation()}>
@@ -173,7 +180,6 @@ export const Cabanas = () => {
               ✕
             </button>
 
-            {/* Carrusel de fotos */}
             <div style={styles.carouselContainer}>
               <img
                 src={getImages(detailCabana)[currentImageIndex]}
@@ -195,19 +201,20 @@ export const Cabanas = () => {
               )}
             </div>
 
-            {/* Información del Bungalow */}
-            <div style={{ padding: '20px' }}>
-              <h2 style={{ color: '#2e4d25', marginTop: 0 }}>{detailCabana.nombre}</h2>
-              <p style={{ color: '#555', fontSize: '1rem', lineHeight: '1.5' }}>
+            <div style={{ padding: '24px' }}>
+              <h2 style={{ color: '#1a365d', marginTop: 0, fontSize: '1.6rem' }}>{detailCabana.nombre}</h2>
+              <p style={{ color: '#4a5568', fontSize: '1rem', lineHeight: '1.6' }}>
                 {detailCabana.descripcion}
               </p>
-              <p><strong>Capacidad:</strong> Hasta {detailCabana.capacidad} personas</p>
-              <p style={{ fontSize: '1.3rem', color: '#5a4226', fontWeight: 'bold' }}>
-                ₡{Number(detailCabana.precio_noche || 0).toLocaleString('es-CR')} / noche
+              <p style={{ color: '#2d3748' }}>
+                <strong>Capacidad:</strong> Hasta {detailCabana.capacidad} personas
+              </p>
+              <p style={{ fontSize: '1.4rem', color: '#2e4d25', fontWeight: 'bold' }}>
+                ₡{Number(detailCabana.precio_noche || 0).toLocaleString('es-CR')} <span style={{ fontSize: '0.9rem', color: '#718096', fontWeight: 'normal' }}>/ noche</span>
               </p>
 
               <button
-                style={{ ...styles.btnPrimary, marginTop: '10px' }}
+                style={{ ...styles.btnPrimary, marginTop: '12px' }}
                 onClick={() => {
                   setSelectedCabana(detailCabana);
                   setDetailCabana(null);
@@ -224,17 +231,27 @@ export const Cabanas = () => {
       {selectedCabana && (
         <div style={styles.modalOverlay} onClick={() => setSelectedCabana(null)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ color: '#2e4d25', marginTop: 0 }}>
+            <h3 style={{ color: '#1a365d', marginTop: 0, fontSize: '1.3rem' }}>
               Reservar {selectedCabana.nombre}
             </h3>
             <form onSubmit={handleSubmit}>
-              <label style={styles.label}>Nombre Completo:</label>
+              <label style={styles.label}>Nombre:</label>
               <input
                 type="text"
                 name="nombre"
                 required
                 style={styles.input}
                 value={formData.nombre}
+                onChange={handleChange}
+              />
+
+              <label style={styles.label}>Apellidos:</label>
+              <input
+                type="text"
+                name="apellidos"
+                required
+                style={styles.input}
+                value={formData.apellidos}
                 onChange={handleChange}
               />
 
@@ -263,10 +280,10 @@ export const Cabanas = () => {
                   <label style={styles.label}>Check-in:</label>
                   <input
                     type="date"
-                    name="fechaCheckin"
+                    name="fecha_checkin"
                     required
                     style={styles.input}
-                    value={formData.fechaCheckin}
+                    value={formData.fecha_checkin}
                     onChange={handleChange}
                   />
                 </div>
@@ -274,10 +291,10 @@ export const Cabanas = () => {
                   <label style={styles.label}>Check-out:</label>
                   <input
                     type="date"
-                    name="fechaCheckout"
+                    name="fecha_checkout"
                     required
                     style={styles.input}
-                    value={formData.fechaCheckout}
+                    value={formData.fecha_checkout}
                     onChange={handleChange}
                   />
                 </div>
@@ -309,37 +326,69 @@ export const Cabanas = () => {
   );
 };
 
-// Objeto de Estilos Inline
+// Objeto de Estilos Inline Renovados
 const styles = {
   container: {
     maxWidth: '1200px',
+    width: '100%',
     margin: '0 auto',
-    padding: '20px',
-    fontFamily: 'system-ui, -apple-system, sans-serif'
+    padding: '30px 20px',
+    boxSizing: 'border-box',
+    fontFamily: "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
   },
   header: {
     textAlign: 'center',
-    marginBottom: '30px'
+    marginBottom: '40px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
+  },
+  headerBadge: {
+    backgroundColor: '#e6f4ea',
+    color: '#2e4d25',
+    fontSize: '0.85rem',
+    fontWeight: '600',
+    padding: '4px 12px',
+    borderRadius: '20px',
+    marginBottom: '8px',
+    letterSpacing: '0.5px'
   },
   title: {
     color: '#2e4d25',
-    margin: '0 0 5px 0'
+    fontSize: '2.6rem',
+    fontWeight: '800',
+    margin: '0 0 10px 0',
+    letterSpacing: '-0.5px'
   },
-  subtitle: {
-    color: '#666',
-    margin: 0
+  subtitleWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    flexWrap: 'wrap'
+  },
+  subtitleTag: {
+    color: '#4a5568',
+    fontSize: '0.95rem',
+    fontWeight: '500'
+  },
+  subtitleDot: {
+    color: '#cbd5e0',
+    fontSize: '0.8rem'
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: '24px',
-    justifyContent: 'center'
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '28px',
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    width: '100%'
   },
   card: {
-    border: '1px solid #e0e0e0',
-    borderRadius: '12px',
+    border: '1px solid #e2e8f0',
+    borderRadius: '16px',
     overflow: 'hidden',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.08)',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
     backgroundColor: '#fff',
     display: 'flex',
     flexDirection: 'column',
@@ -347,48 +396,93 @@ const styles = {
     transition: 'transform 0.2s ease, box-shadow 0.2s ease'
   },
   imageContainer: {
-    backgroundColor: '#1b2a1a',
-    height: '200px',
     width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden'
+    height: '220px',
+    overflow: 'hidden',
+    backgroundColor: '#1b2a1a'
   },
   cardImage: {
     width: '100%',
     height: '100%',
-    objectFit: 'contain',
+    objectFit: 'cover',
+    objectPosition: 'center',
     display: 'block'
+  },
+  cardBody: {
+    padding: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    textAlign: 'center'
+  },
+  cardTitle: {
+    color: '#2e4d25',
+    fontSize: '1.35rem',
+    fontWeight: '700',
+    marginTop: 0,
+    marginBottom: '10px'
+  },
+  cardDesc: {
+    color: '#4a5568',
+    fontSize: '0.92rem',
+    lineHeight: '1.5',
+    marginBottom: '14px',
+    flexGrow: 1
+  },
+  capacityBadge: {
+    backgroundColor: '#f7fafc',
+    border: '1px solid #edf2f7',
+    color: '#4a5568',
+    fontSize: '0.88rem',
+    padding: '6px 12px',
+    borderRadius: '8px',
+    marginBottom: '14px',
+    display: 'inline-block'
+  },
+  priceContainer: {
+    marginBottom: '16px'
+  },
+  priceAmount: {
+    fontSize: '1.4rem',
+    color: '#2e4d25',
+    fontWeight: '800'
+  },
+  priceUnit: {
+    fontSize: '0.85rem',
+    color: '#718096',
+    fontWeight: 'normal'
   },
   btnPrimary: {
     backgroundColor: '#2e4d25',
     color: '#fff',
     border: 'none',
-    padding: '10px 16px',
-    borderRadius: '6px',
+    padding: '12px 18px',
+    borderRadius: '8px',
     cursor: 'pointer',
-    fontSize: '1rem',
-    fontWeight: 'bold',
-    width: '100%'
+    fontSize: '0.95rem',
+    fontWeight: '700',
+    width: '100%',
+    transition: 'background-color 0.2s ease'
   },
   btnSecondary: {
-    backgroundColor: '#888',
+    backgroundColor: '#a0aec0',
     color: '#fff',
     border: 'none',
-    padding: '10px 16px',
-    borderRadius: '6px',
+    padding: '12px 18px',
+    borderRadius: '8px',
     cursor: 'pointer',
-    fontSize: '1rem',
+    fontSize: '0.95rem',
+    fontWeight: '600',
     width: '100%'
   },
   alertSuccess: {
-    backgroundColor: '#d4edda',
-    color: '#155724',
-    padding: '12px',
-    borderRadius: '6px',
-    marginBottom: '20px',
-    textAlign: 'center'
+    backgroundColor: '#c6f6d5',
+    color: '#22543d',
+    padding: '14px',
+    borderRadius: '8px',
+    marginBottom: '24px',
+    textAlign: 'center',
+    fontWeight: '600'
   },
   modalOverlay: {
     position: 'fixed',
@@ -396,7 +490,8 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    backdropFilter: 'blur(3px)',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -404,8 +499,8 @@ const styles = {
   },
   modalContent: {
     backgroundColor: '#fff',
-    padding: '24px',
-    borderRadius: '12px',
+    padding: '28px',
+    borderRadius: '16px',
     maxWidth: '450px',
     width: '90%',
     maxHeight: '90vh',
@@ -413,7 +508,7 @@ const styles = {
   },
   detailModalContent: {
     backgroundColor: '#fff',
-    borderRadius: '12px',
+    borderRadius: '16px',
     maxWidth: '650px',
     width: '90%',
     maxHeight: '90vh',
@@ -437,7 +532,7 @@ const styles = {
   carouselContainer: {
     position: 'relative',
     height: '360px',
-    backgroundColor: '#1b2a1a',
+    backgroundColor: '#1a202c',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
@@ -465,32 +560,34 @@ const styles = {
   },
   imageCounter: {
     position: 'absolute',
-    bottom: '10px',
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    bottom: '12px',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     color: '#fff',
-    padding: '4px 10px',
+    padding: '4px 12px',
     borderRadius: '12px',
     fontSize: '0.8rem'
   },
   label: {
     display: 'block',
-    marginBottom: '4px',
-    fontWeight: 'bold',
-    fontSize: '0.9rem',
-    color: '#333'
+    marginBottom: '6px',
+    fontWeight: '600',
+    fontSize: '0.88rem',
+    color: '#2d3748'
   },
   input: {
     width: '100%',
-    padding: '8px 12px',
-    marginBottom: '12px',
-    borderRadius: '6px',
-    border: '1px solid #ccc',
-    boxSizing: 'border-box'
+    padding: '10px 14px',
+    marginBottom: '14px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e0',
+    boxSizing: 'border-box',
+    fontSize: '0.95rem'
   },
   totalBox: {
-    backgroundColor: '#f5f5f5',
-    padding: '10px',
-    borderRadius: '6px',
+    backgroundColor: '#f0fff4',
+    border: '1px solid #c6f6d5',
+    padding: '12px',
+    borderRadius: '8px',
     marginTop: '10px',
     textAlign: 'center',
     fontSize: '1.1rem',
