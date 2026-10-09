@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { isWithinInterval, eachDayOfInterval, isBefore, startOfDay, format } from 'date-fns';
 
 export const Cabanas = () => {
   const [cabanas, setCabanas] = useState([]);
@@ -6,13 +9,17 @@ export const Cabanas = () => {
   const [detailCabana, setDetailCabana] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Estado de fechas ocupadas (en formato Objeto Date)
+  const [fechasOcupadas, setFechasOcupadas] = useState([]);
+  const [fechasSeleccionadas, setFechasSeleccionadas] = useState([null, null]);
+  const [fechaCheckin, fechaCheckout] = fechasSeleccionadas;
+  const [errorFecha, setErrorFecha] = useState('');
+
   const [formData, setFormData] = useState({
     nombre: '',
     apellidos: '',
     email: '',
-    telefono: '',
-    fecha_checkin: '',
-    fecha_checkout: ''
+    telefono: ''
   });
   const [mensaje, setMensaje] = useState('');
 
@@ -23,6 +30,44 @@ export const Cabanas = () => {
       .then((data) => setCabanas(data))
       .catch((err) => console.error('Error al cargar bungalows:', err));
   }, []);
+
+  // Cargar fechas ocupadas de la cabaña seleccionada (Ajustado a la zona horaria local)
+  useEffect(() => {
+    if (!selectedCabana) {
+      setFechasOcupadas([]);
+      setFechasSeleccionadas([null, null]);
+      setErrorFecha('');
+      return;
+    }
+
+    const obtenerFechasOcupadas = async () => {
+      try {
+        const response = await fetch(`http://localhost:5000/api/reservas/ocupadas/${selectedCabana.id_bungalow}`);
+        const data = await response.json();
+
+        let diasBloqueados = [];
+        data.forEach((reserva) => {
+          if (!reserva.fecha_checkin || !reserva.fecha_checkout) return;
+
+          // Extraer año, mes y día para forzar la fecha en hora local sin desfase UTC
+          const [aIn, mIn, dIn] = reserva.fecha_checkin.split('-').map(Number);
+          const [aOut, mOut, dOut] = reserva.fecha_checkout.split('-').map(Number);
+
+          const inicio = new Date(aIn, mIn - 1, dIn, 0, 0, 0);
+          const fin = new Date(aOut, mOut - 1, dOut, 0, 0, 0);
+
+          const diasEnRango = eachDayOfInterval({ start: inicio, end: fin });
+          diasBloqueados = [...diasBloqueados, ...diasEnRango];
+        });
+
+        setFechasOcupadas(diasBloqueados);
+      } catch (err) {
+        console.error('Error al consultar fechas ocupadas:', err);
+      }
+    };
+
+    obtenerFechasOcupadas();
+  }, [selectedCabana]);
 
   const handleOpenDetail = (cabana) => {
     setDetailCabana(cabana);
@@ -53,23 +98,72 @@ export const Cabanas = () => {
     });
   };
 
+  // Comparación estricta de día, mes y año para identificar casillas ocupadas
+  const estaOcupado = (date) => {
+    return fechasOcupadas.some(
+      (d) =>
+        d.getFullYear() === date.getFullYear() &&
+        d.getMonth() === date.getMonth() &&
+        d.getDate() === date.getDate()
+    );
+  };
+
+  // Aplicar clases Verde y Rojo en el Calendario
+  const getDayClassName = (date) => {
+    if (isBefore(date, startOfDay(new Date()))) {
+      return 'dia-pasado';
+    }
+    if (estaOcupado(date)) {
+      return 'dia-ocupado'; // Rojo
+    }
+    return 'dia-disponible'; // Verde
+  };
+
+  // Validar cambio de fechas en el DatePicker
+  const handleFechaChange = (update) => {
+    const [start, end] = update;
+    setErrorFecha('');
+
+    if (start && end) {
+      const cruzaFechaOcupada = fechasOcupadas.some((fechaBloqueada) =>
+        isWithinInterval(fechaBloqueada, { start, end })
+      );
+
+      if (cruzaFechaOcupada) {
+        setErrorFecha('El rango seleccionado incluye días que ya están reservados.');
+        setFechasSeleccionadas([null, null]);
+        return;
+      }
+    }
+
+    setFechasSeleccionadas(update);
+  };
+
   const calcularTotal = () => {
-    if (!formData.fecha_checkin || !formData.fecha_checkout || !selectedCabana) return 0;
-    const checkin = new Date(formData.fecha_checkin);
-    const checkout = new Date(formData.fecha_checkout);
-    const diffTime = checkout - checkin;
+    if (!fechaCheckin || !fechaCheckout || !selectedCabana) return 0;
+    const diffTime = fechaCheckout - fechaCheckin;
     const dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return dias > 0 ? dias * Number(selectedCabana.precio_noche) : 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!fechaCheckin || !fechaCheckout) {
+      alert('Por favor selecciona las fechas de Check-in y Check-out en el calendario.');
+      return;
+    }
+
     const total = calcularTotal();
 
     if (total <= 0) {
       alert('La fecha de check-out debe ser posterior a la fecha de check-in.');
       return;
     }
+
+    // Formatear fechas a YYYY-MM-DD
+    const strCheckin = format(fechaCheckin, 'yyyy-MM-dd');
+    const strCheckout = format(fechaCheckout, 'yyyy-MM-dd');
 
     try {
       const response = await fetch('http://localhost:5000/api/reservas', {
@@ -81,8 +175,8 @@ export const Cabanas = () => {
           apellidos: formData.apellidos,
           email: formData.email,
           telefono: formData.telefono,
-          fecha_checkin: formData.fecha_checkin,
-          fecha_checkout: formData.fecha_checkout,
+          fecha_checkin: strCheckin,
+          fecha_checkout: strCheckout,
           total
         })
       });
@@ -96,12 +190,11 @@ export const Cabanas = () => {
           nombre: '',
           apellidos: '',
           email: '',
-          telefono: '',
-          fecha_checkin: '',
-          fecha_checkout: ''
+          telefono: ''
         });
+        setFechasSeleccionadas([null, null]);
       } else {
-        alert('Error al realizar la reserva: ' + resData.error);
+        alert('Error al realizar la reserva: ' + (resData.error || 'Ocurrió un error'));
       }
     } catch (error) {
       console.error('Error al enviar la reserva:', error);
@@ -111,6 +204,85 @@ export const Cabanas = () => {
 
   return (
     <div style={styles.container}>
+      {/* Estilos CSS personalizados para destacar Check-in, Check-out y Días Ocupados */}
+      <style>{`
+        /* Días Ocupados: Rojo forzado */
+        .react-datepicker__day.dia-ocupado,
+        .react-datepicker__day--disabled.dia-ocupado,
+        .dia-ocupado {
+          background-color: #dc3545 !important;
+          color: #ffffff !important;
+          text-decoration: line-through !important;
+          border-radius: 50% !important;
+          cursor: not-allowed !important;
+          opacity: 0.8;
+        }
+
+        /* Días Disponibles: Verde claro base */
+        .react-datepicker__day.dia-disponible:not(.react-datepicker__day--selected):not(.react-datepicker__day--in-range),
+        .dia-disponible {
+          background-color: #d4edda !important;
+          color: #155724 !important;
+          border-radius: 50% !important;
+        }
+
+        .react-datepicker__day.dia-disponible:hover {
+          background-color: #c3e6cb !important;
+        }
+
+        /* 1. DÍA DE CHECK-IN (Inicio de Selección - Verde Oscuro) */
+        .react-datepicker__day--range-start,
+        .react-datepicker__day--selecting-range-start {
+          background-color: #1b4332 !important;
+          color: #ffffff !important;
+          font-weight: bold !important;
+          border-radius: 50% 0 0 50% !important;
+          box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+        }
+
+        /* 2. DÍA DE CHECK-OUT (Fin de Selección - Verde Oscuro) */
+        .react-datepicker__day--range-end {
+          background-color: #1b4332 !important;
+          color: #ffffff !important;
+          font-weight: bold !important;
+          border-radius: 0 50% 50% 0 !important;
+          box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+        }
+
+        /* 3. DÍAS INTERMEDIOS (Rango Completo) */
+        .react-datepicker__day--in-range:not(.react-datepicker__day--range-start):not(.react-datepicker__day--range-end),
+        .react-datepicker__day--in-selecting-range {
+          background-color: #52b788 !important;
+          color: #ffffff !important;
+          border-radius: 0 !important;
+        }
+
+        .dia-pasado {
+          opacity: 0.25;
+        }
+
+        .react-datepicker {
+          font-family: inherit;
+          border: 1px solid #cbd5e0;
+          border-radius: 12px;
+          overflow: hidden;
+          width: 100%;
+        }
+
+        .react-datepicker__month-container {
+          width: 100%;
+        }
+
+        .react-datepicker__header {
+          background-color: #2e4d25;
+        }
+
+        .react-datepicker__current-month, 
+        .react-datepicker__day-name {
+          color: #ffffff !important;
+        }
+      `}</style>
+
       {/* Encabezado Estilizado */}
       <header style={styles.header}>
         <span style={styles.headerBadge}> </span>
@@ -227,7 +399,7 @@ export const Cabanas = () => {
         </div>
       )}
 
-      {/* Modal 2: Formulario de Reserva */}
+      {/* Modal 2: Formulario de Reserva con Calendario Interactivo */}
       {selectedCabana && (
         <div style={styles.modalOverlay} onClick={() => setSelectedCabana(null)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -275,30 +447,59 @@ export const Cabanas = () => {
                 onChange={handleChange}
               />
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={styles.label}>Check-in:</label>
-                  <input
-                    type="date"
-                    name="fecha_checkin"
-                    required
-                    style={styles.input}
-                    value={formData.fecha_checkin}
-                    onChange={handleChange}
-                  />
+              {/* CALENDARIO INTERACTIVO */}
+              <label style={styles.label}>Selecciona tu rango de hospedaje:</label>
+              <div style={{ marginBottom: '10px', textAlign: 'center' }}>
+                <DatePicker
+                  selectsRange
+                  startDate={fechaCheckin}
+                  endDate={fechaCheckout}
+                  onChange={handleFechaChange}
+                  inline
+                  minDate={new Date()}
+                  excludeDates={fechasOcupadas}
+                  dayClassName={getDayClassName}
+                />
+              </div>
+
+              {/* Cajas Informativas de Check-in y Check-out */}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '14px' }}>
+                <div style={{
+                  flex: 1,
+                  padding: '8px',
+                  borderRadius: '8px',
+                  backgroundColor: fechaCheckin ? '#e6f4ea' : '#f8f9fa',
+                  border: fechaCheckin ? '1px solid #2e4d25' : '1px solid #e2e8f0',
+                  textAlign: 'center',
+                  fontSize: '0.85rem'
+                }}>
+                  <small style={{ color: '#718096', display: 'block' }}>Check-in</small>
+                  <strong style={{ color: '#2e4d25' }}>
+                    {fechaCheckin ? fechaCheckin.toLocaleDateString('es-CR') : 'Seleccionar'}
+                  </strong>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={styles.label}>Check-out:</label>
-                  <input
-                    type="date"
-                    name="fecha_checkout"
-                    required
-                    style={styles.input}
-                    value={formData.fecha_checkout}
-                    onChange={handleChange}
-                  />
+
+                <div style={{
+                  flex: 1,
+                  padding: '8px',
+                  borderRadius: '8px',
+                  backgroundColor: fechaCheckout ? '#e6f4ea' : '#f8f9fa',
+                  border: fechaCheckout ? '1px solid #2e4d25' : '1px solid #e2e8f0',
+                  textAlign: 'center',
+                  fontSize: '0.85rem'
+                }}>
+                  <small style={{ color: '#718096', display: 'block' }}>Check-out</small>
+                  <strong style={{ color: '#2e4d25' }}>
+                    {fechaCheckout ? fechaCheckout.toLocaleDateString('es-CR') : 'Seleccionar'}
+                  </strong>
                 </div>
               </div>
+
+              {errorFecha && (
+                <p style={{ color: '#dc3545', fontWeight: 'bold', fontSize: '0.88rem', margin: '0 0 10px 0' }}>
+                  ⚠️ {errorFecha}
+                </p>
+              )}
 
               {calcularTotal() > 0 && (
                 <div style={styles.totalBox}>
@@ -501,7 +702,7 @@ const styles = {
     backgroundColor: '#fff',
     padding: '28px',
     borderRadius: '16px',
-    maxWidth: '450px',
+    maxWidth: '480px',
     width: '90%',
     maxHeight: '90vh',
     overflowY: 'auto'
