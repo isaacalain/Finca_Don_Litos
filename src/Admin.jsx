@@ -425,7 +425,7 @@ export default function Admin({ setAutenticado }) {
   // 4. Cambiar estado de reserva ('pagada' / 'reservada')
   const cambiarEstadoReserva = async (id, nuevoEstado) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/reservas/${id}/estado`, {
+      const response = await fetch(`http://localhost:5000/api/admin/reservas/${id}/estado`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado: nuevoEstado }),
@@ -472,7 +472,7 @@ export default function Admin({ setAutenticado }) {
     }
   };
 
-// 6. Abrir modal de seguridad para crear usuario
+  // 6. Abrir modal de seguridad para crear usuario
   const prepararCrearUsuario = (e) => {
     e.preventDefault();
 
@@ -774,15 +774,15 @@ export default function Admin({ setAutenticado }) {
 
           {/* Menú Desplegable de Perfil */}
           <div ref={menuRef} style={{ position: 'relative' }}>
-            <div 
+            <div
               onClick={() => setMenuPerfilAbierto(!menuPerfilAbierto)}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '10px', 
-                cursor: 'pointer', 
-                backgroundColor: 'rgba(255,255,255,0.15)', 
-                padding: '5px 12px 5px 6px', 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                padding: '5px 12px 5px 6px',
                 borderRadius: '25px',
                 transition: 'background-color 0.2s'
               }}
@@ -1102,11 +1102,37 @@ export default function Admin({ setAutenticado }) {
                           </td>
                           <td style={{ padding: '12px' }}>
                             <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                              {r.estado !== 'pagada' && (
-                                <button type="button" onClick={() => cambiarEstadoReserva(r.id, 'pagada')} style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>Pagar</button>
+                              {/* Botón para regresar a estado 'reservada' si no está reservada ya */}
+                              {r.estado !== 'reservada' && (
+                                <button
+                                  type="button"
+                                  onClick={() => cambiarEstadoReserva(r.id, 'reservada')}
+                                  style={{ backgroundColor: '#ffc107', color: '#212529', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                                >
+                                  Reservar
+                                </button>
                               )}
+
+                              {/* Botón para marcar como 'pagada' */}
+                              {r.estado !== 'pagada' && (
+                                <button
+                                  type="button"
+                                  onClick={() => cambiarEstadoReserva(r.id, 'pagada')}
+                                  style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                                >
+                                  Pagar
+                                </button>
+                              )}
+
+                              {/* Botón para marcar como 'cancelada' */}
                               {r.estado !== 'cancelada' && (
-                                <button type="button" onClick={() => handleCancelar(r.id)} style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>Cancelar</button>
+                                <button
+                                  type="button"
+                                  onClick={() => cambiarEstadoReserva(r.id, 'cancelada')}
+                                  style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                                >
+                                  Cancelar
+                                </button>
                               )}
                             </div>
                           </td>
@@ -1122,11 +1148,11 @@ export default function Admin({ setAutenticado }) {
           {/* PESTAÑA 3: GESTIÓN DE USUARIOS */}
           {tabActiva === 'usuarios' && (
             <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-              
+
               {/* Formulario para Crear Nuevo Usuario */}
               <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #e2e8f0' }}>
                 <h3 style={{ marginTop: 0, color: '#2e4d25', textAlign: 'center', marginBottom: '20px' }}>➕ Registrar Nuevo Usuario</h3>
-                
+
                 <form onSubmit={prepararCrearUsuario} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', alignItems: 'flex-end' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Nombre:</label>
@@ -1303,8 +1329,8 @@ export default function Admin({ setAutenticado }) {
               {modalAccionUsuario === 'eliminar' ? '⚠️ Confirmar Eliminación' : '🔐 Confirmar Cambio de Estado'}
             </h3>
             <p style={{ fontSize: '14px', color: '#555' }}>
-              {modalAccionUsuario === 'eliminar' 
-                ? `Estás a punto de eliminar al usuario ${usuarioObjetivo?.correo}. Ingresa tu contraseña de administrador para confirmar:` 
+              {modalAccionUsuario === 'eliminar'
+                ? `Estás a punto de eliminar al usuario ${usuarioObjetivo?.correo}. Ingresa tu contraseña de administrador para confirmar:`
                 : `Estás a punto de cambiar el estado de ${usuarioObjetivo?.correo} a '${nuevoEstadoObjetivo}'. Ingresa tu contraseña:`}
             </p>
 

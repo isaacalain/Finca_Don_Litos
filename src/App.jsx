@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './Login';
 import { Cabanas } from './Cabanas';
 import Admin from './Admin';
-
+import ResetPassword from './ResetPassword';
 function App() {
   const [autenticado, setAutenticado] = useState(
     () => localStorage.getItem('adminAutenticado') === 'true'
@@ -12,6 +12,7 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/reset-password" element={<ResetPassword />} />
         {/* Redirigir la raíz al login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
 

@@ -17,6 +17,13 @@ export default function Login({ setAutenticado }) {
   const [errorRegistro, setErrorRegistro] = useState('');
   const [registrando, setRegistrando] = useState(false);
 
+  // Estados para el Modal de Recuperar Contraseña
+  const [mostrarModalForgot, setMostrarModalForgot] = useState(false);
+  const [forgotCorreo, setForgotCorreo] = useState('');
+  const [forgotMensaje, setForgotMensaje] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotCargando, setForgotCargando] = useState(false);
+
   // Manejar el Login (Verifica contra la API o contra los usuarios registrados)
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -126,6 +133,35 @@ export default function Login({ setAutenticado }) {
     }
   };
 
+  // Enviar solicitud de recuperación de contraseña
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotMensaje('');
+    setForgotCargando(true);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correo: forgotCorreo.trim().toLowerCase() })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setForgotMensaje('¡Correo enviado con éxito! Revisa tu bandeja de entrada para restablecer tu contraseña.');
+      } else {
+        setForgotError(data.error || 'No se pudo procesar la solicitud.');
+      }
+    } catch (err) {
+      console.error(err);
+      setForgotError('Error de conexión con el servidor.');
+    } finally {
+      setForgotCargando(false);
+    }
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.card}>
@@ -148,7 +184,21 @@ export default function Login({ setAutenticado }) {
           </div>
 
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Contraseña:</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={styles.label}>Contraseña:</label>
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotCorreo('');
+                  setForgotMensaje('');
+                  setForgotError('');
+                  setMostrarModalForgot(true);
+                }}
+                style={styles.linkButton}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
             <input
               type="password"
               required
@@ -278,6 +328,61 @@ export default function Login({ setAutenticado }) {
           </div>
         </div>
       )}
+
+      {/* MODAL RECUPERAR CONTRASEÑA */}
+      {mostrarModalForgot && (
+        <div style={styles.modalOverlay} onClick={() => setMostrarModalForgot(false)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, color: '#2e4d25', textAlign: 'center' }}>🔑 Recuperar Contraseña</h3>
+            <p style={{ fontSize: '13px', color: '#666', textAlign: 'center', marginBottom: '15px' }}>
+              Ingresa tu correo electrónico registrado y te enviaremos un enlace de recuperación.
+            </p>
+
+            {forgotMensaje && (
+              <div style={{ backgroundColor: '#d4edda', color: '#155724', padding: '10px', borderRadius: '6px', fontSize: '13px', marginBottom: '15px', textAlign: 'center' }}>
+                {forgotMensaje}
+              </div>
+            )}
+
+            {forgotError && (
+              <div style={{ backgroundColor: '#f8d7da', color: '#721c24', padding: '10px', borderRadius: '6px', fontSize: '13px', marginBottom: '15px', textAlign: 'center' }}>
+                ⚠️ {forgotError}
+              </div>
+            )}
+
+            <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={styles.label}>Correo Electrónico:</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="tucorreo@ejemplo.com"
+                  value={forgotCorreo}
+                  onChange={(e) => setForgotCorreo(e.target.value)}
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setMostrarModalForgot(false)}
+                  style={styles.btnSecondaryModal}
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="submit"
+                  disabled={forgotCargando}
+                  style={styles.btnPrimaryModal}
+                >
+                  {forgotCargando ? 'Enviando...' : 'Enviar Enlace'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -290,6 +395,7 @@ const styles = {
   form: { display: 'flex', flexDirection: 'column', gap: '16px' },
   inputGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
   label: { fontWeight: '600', fontSize: '0.88rem', color: '#2d3748' },
+  linkButton: { background: 'none', border: 'none', color: '#2e4d25', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', padding: 0, textDecoration: 'underline' },
   input: { padding: '11px 14px', borderRadius: '8px', border: '1px solid #cbd5e0', fontSize: '0.95rem', boxSizing: 'border-box', width: '100%' },
   btnPrimary: { backgroundColor: '#2e4d25', color: '#fff', border: 'none', padding: '12px', borderRadius: '8px', fontSize: '1rem', fontWeight: '700', cursor: 'pointer', marginTop: '6px', width: '100%' },
   btnVisitor: { backgroundColor: '#e2e8f0', color: '#2d3748', border: 'none', padding: '11px', borderRadius: '8px', fontSize: '0.92rem', fontWeight: '600', cursor: 'pointer', width: '100%' },

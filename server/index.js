@@ -2,10 +2,30 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Configuración única del transportador de correo
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'fincadonlitos1@gmail.com',
+    pass: 'zkdq hvje vhvp miqb'
+  }
+});
+
+// Verificar conexión de correo al iniciar
+transporter.verify((error) => {
+  if (error) {
+    console.error('❌ Error al conectar con el servicio de correo:', error);
+  } else {
+    console.log('✅ Servidor de correo listo para enviar mensajes.');
+  }
+});
 
 const db = mysql.createPool({
   host: 'mysql-313f4314-isaacalain5-d93c.l.aivencloud.com',
@@ -96,7 +116,7 @@ app.post('/api/login', (req, res) => {
 });
 
 // ==========================================
-// 2. ENDPOINT DE REGISTRO PÚBLICO (Desde el Login)
+// 2. ENDPOINT DE REGISTRO PÚBLICO
 // ==========================================
 app.post('/api/usuarios', async (req, res) => {
   const { nombre, apellidos, correo, password, rol } = req.body;
@@ -105,7 +125,6 @@ app.post('/api/usuarios', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Faltan campos obligatorios.' });
   }
 
-  // 👉 Validar mínimo 6 caracteres en la contraseña
   if (password.trim().length < 6) {
     return res.status(400).json({ success: false, error: 'La contraseña debe tener al menos 6 caracteres.' });
   }
@@ -148,6 +167,94 @@ app.post('/api/usuarios', async (req, res) => {
     res.status(500).json({ success: false, error: 'Error al procesar el registro.' });
   }
 });
+
+// Ruta para solicitar recuperación de contraseña
+app.post('/api/forgot-password', async (req, res) => {
+  const { correo } = req.body;
+
+  if (!correo) {
+    return res.status(400).json({ success: false, error: 'El correo es obligatorio.' });
+  }
+
+  try {
+    const [usuarios] = await db.promise().query('SELECT * FROM usuarios WHERE correo = ?', [correo]);
+    
+    if (usuarios.length === 0) {
+      return res.status(404).json({ success: false, error: 'No existe una cuenta registrada con este correo.' });
+    }
+
+    const usuario = usuarios[0];
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    const formatoExpires = expiresAt.toISOString().slice(0, 19).replace('T', ' ');
+
+    await db.promise().query(
+      'UPDATE usuarios SET reset_token = ?, reset_token_expires = ? WHERE id_usuario = ?',
+      [resetToken, formatoExpires, usuario.id_usuario]
+    );
+
+    const enlaceReset = `http://localhost:5173/reset-password?token=${resetToken}`;
+
+    const mailOptions = {
+      from: 'Finca Don Litos <fincadonlitos1@gmail.com>',
+      to: usuario.correo,
+      subject: 'Recuperación de Contraseña - Finca Don Litos',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #2e4d25;">Recuperación de Contraseña</h2>
+          <p>Hola <strong>${usuario.nombre}</strong>,</p>
+          <p>Has solicitado restablecer tu contraseña. Haz clic en el siguiente botón para continuar:</p>
+          <a href="${enlaceReset}" style="display: inline-block; background-color: #2e4d25; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 15px 0;">Restablecer Contraseña</a>
+          <p>Este enlace expirará en 15 minutos.</p>
+          <p>Si tú no solicitaste esto, puedes ignorar este mensaje.</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.json({ success: true, message: 'Se ha enviado un correo con las instrucciones.' });
+
+  } catch (err) {
+    console.error('Error en forgot-password:', err);
+    res.status(500).json({ success: false, error: 'Error en el servidor al procesar la solicitud.' });
+  }
+});
+
+// Ruta para restablecer la contraseña usando el token
+app.post('/api/reset-password', async (req, res) => {
+  const { token, nuevaPassword } = req.body;
+
+  if (!token || !nuevaPassword) {
+    return res.status(400).json({ success: false, error: 'El token y la nueva contraseña son obligatorios.' });
+  }
+
+  try {
+    const [usuarios] = await db.promise().query(
+      'SELECT * FROM usuarios WHERE reset_token = ? AND reset_token_expires > NOW()',
+      [token]
+    );
+
+    if (usuarios.length === 0) {
+      return res.status(400).json({ success: false, error: 'El enlace es inválido o ya ha expirado.' });
+    }
+
+    const usuario = usuarios[0];
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(nuevaPassword, saltRounds);
+
+    await db.promise().query(
+      'UPDATE usuarios SET contrasena = ?, reset_token = NULL, reset_token_expires = NULL WHERE id_usuario = ?',
+      [hashedPassword, usuario.id_usuario || usuario.id]
+    );
+
+    res.json({ success: true, message: 'Contraseña actualizada correctamente. Ya puedes iniciar sesión.' });
+
+  } catch (err) {
+    console.error('Error en reset-password:', err);
+    res.status(500).json({ success: false, error: 'Error en el servidor al restablecer la contraseña.' });
+  }
+});
+
 // ==========================================
 // 3. OBTENER LISTA DE USUARIOS
 // ==========================================
@@ -163,13 +270,11 @@ app.get('/api/usuarios', (req, res) => {
 });
 
 // ==========================================
-// 4. ELIMINAR USUARIO (Asegurado con esquema completo)
+// 4. ELIMINAR USUARIO
 // ==========================================
 app.delete('/api/usuarios/:id', async (req, res) => {
   const { id } = req.params;
   const { adminId, adminCorreo, adminPassword } = req.body;
-
-  console.log("🔍 [DELETE] Intentando eliminar usuario ID:", id, "por admin ID:", adminId, "Correo:", adminCorreo);
 
   if (!adminPassword || (!adminId && !adminCorreo)) {
     return res.status(400).json({ success: false, error: 'Faltan credenciales del administrador.' });
@@ -178,30 +283,23 @@ app.delete('/api/usuarios/:id', async (req, res) => {
   const checkAdminSql = 'SELECT * FROM finca_don_litos.usuarios WHERE (id_usuario = ? OR LOWER(TRIM(correo)) = ?) LIMIT 1';
   db.query(checkAdminSql, [adminId || 0, (adminCorreo || '').trim().toLowerCase()], async (err, results) => {
     if (err) {
-      console.error("❌ Error SQL:", err);
       return res.status(500).json({ success: false, error: 'Error en la base de datos.' });
     }
 
     if (!results || results.length === 0) {
-      console.log("⚠️ Administrador no encontrado en la BD.");
       return res.status(401).json({ success: false, error: 'Administrador no encontrado.' });
     }
 
     const admin = results[0];
-    console.log("✅ Admin localizado:", admin.correo, "Rol actual en BD:", admin.rol);
-
-    // Verificamos la contraseña con la columna 'contrasena'
     const adminPassValido = await bcrypt.compare(adminPassword.trim(), admin.contrasena);
 
     if (!adminPassValido) {
-      console.log("⚠️ Contraseña de administrador incorrecta.");
       return res.status(401).json({ success: false, error: 'Contraseña de administrador incorrecta.' });
     }
 
     const sql = 'DELETE FROM finca_don_litos.usuarios WHERE id_usuario = ?';
-    db.query(sql, [id], (errDel, result) => {
+    db.query(sql, [id], (errDel) => {
       if (errDel) {
-        console.error(errDel);
         return res.status(500).json({ success: false, error: 'Error al eliminar el usuario.' });
       }
       res.json({ success: true, mensaje: 'Usuario eliminado exitosamente.' });
@@ -210,13 +308,11 @@ app.delete('/api/usuarios/:id', async (req, res) => {
 });
 
 // ==========================================
-// 4.1. CAMBIAR ESTADO DE USUARIO (Asegurado con esquema completo)
+// 4.1. CAMBIAR ESTADO DE USUARIO
 // ==========================================
 app.put('/api/usuarios/:id/estado', async (req, res) => {
   const { id } = req.params;
   const { nuevoEstado, adminId, adminCorreo, adminPassword } = req.body;
-
-  console.log("🔍 [PUT ESTADO] Usuario ID:", id, "Nuevo estado:", nuevoEstado, "por admin ID:", adminId, "Correo:", adminCorreo);
 
   if (!adminPassword || (!adminId && !adminCorreo)) {
     return res.status(400).json({ success: false, error: 'Faltan credenciales del administrador.' });
@@ -225,30 +321,23 @@ app.put('/api/usuarios/:id/estado', async (req, res) => {
   const checkAdminSql = 'SELECT * FROM finca_don_litos.usuarios WHERE (id_usuario = ? OR LOWER(TRIM(correo)) = ?) LIMIT 1';
   db.query(checkAdminSql, [adminId || 0, (adminCorreo || '').trim().toLowerCase()], async (err, results) => {
     if (err) {
-      console.error("❌ Error SQL:", err);
       return res.status(500).json({ success: false, error: 'Error en la base de datos.' });
     }
 
     if (!results || results.length === 0) {
-      console.log("⚠️ Administrador no encontrado en la BD.");
       return res.status(401).json({ success: false, error: 'Administrador no encontrado.' });
     }
 
     const admin = results[0];
-    console.log("✅ Admin localizado:", admin.correo, "Rol actual en BD:", admin.rol);
-
-    // Verificamos la contraseña con la columna 'contrasena'
     const adminPassValido = await bcrypt.compare(adminPassword.trim(), admin.contrasena);
 
     if (!adminPassValido) {
-      console.log("⚠️ Contraseña de administrador incorrecta.");
       return res.status(401).json({ success: false, error: 'Contraseña de administrador incorrecta.' });
     }
 
     const sql = 'UPDATE finca_don_litos.usuarios SET estado = ? WHERE id_usuario = ?';
-    db.query(sql, [nuevoEstado, id], (errUpd, result) => {
+    db.query(sql, [nuevoEstado, id], (errUpd) => {
       if (errUpd) {
-        console.error(errUpd);
         return res.status(500).json({ success: false, error: 'Error al actualizar el estado del usuario.' });
       }
       res.json({ success: true, mensaje: 'Estado actualizado exitosamente.' });
@@ -290,7 +379,6 @@ app.put('/api/perfil', async (req, res) => {
       const updateSql = 'UPDATE usuarios SET nombre = ?, apellidos = ?, correo = ?, contrasena = ? WHERE id_usuario = ?';
       db.query(updateSql, [nombre.trim(), apellidos.trim(), correoLimpio, passFinal, id_usuario], (errResult) => {
         if (errResult) {
-          console.error(errResult);
           return res.status(500).json({ success: false, error: 'Error al actualizar el perfil.' });
         }
 
@@ -312,13 +400,13 @@ app.put('/api/perfil', async (req, res) => {
     }
   });
 });
+
 // ==========================================
 // 6. CREAR USUARIO DESDE ADMIN
 // ==========================================
 app.post('/api/admin/crear-usuario', async (req, res) => {
-  const { adminCorreo, adminPassword, nuevoNombre, nuevoApellido, nuevoCorreo, nuevaPassword, nuevoRol } = req.body;
+  const { adminCorreo, adminPassword, nuevoNombre, nuevoApellido, nuevoCorreo, nuevaPassword } = req.body;
 
-  // Validación de mínimo 6 caracteres
   if (nuevaPassword && nuevaPassword.trim().length < 6) {
     return res.status(400).json({ success: false, error: 'La contraseña del nuevo usuario debe tener al menos 6 caracteres.' });
   }
@@ -327,12 +415,10 @@ app.post('/api/admin/crear-usuario', async (req, res) => {
     return res.status(401).json({ success: false, error: 'Faltan credenciales del administrador.' });
   }
 
-  // Buscamos al administrador directamente por su correo exacto
   const findAdminSql = 'SELECT * FROM finca_don_litos.usuarios WHERE LOWER(TRIM(correo)) = ? LIMIT 1';
   
   db.query(findAdminSql, [adminCorreo.trim().toLowerCase()], async (err, results) => {
     if (err) {
-      console.error("❌ Error en base de datos:", err);
       return res.status(500).json({ success: false, error: 'Error interno del servidor.' });
     }
 
@@ -354,7 +440,6 @@ app.post('/api/admin/crear-usuario', async (req, res) => {
     const insertSql = 'INSERT INTO finca_don_litos.usuarios (nombre, apellidos, correo, contrasena, estado) VALUES (?, ?, ?, ?, ?)';
     db.query(insertSql, [nuevoNombre.trim(), nuevoApellido.trim(), correoLimpio, hashedNewPassword, estadoInicial], (errInsert) => {
       if (errInsert) {
-        console.error("❌ Error al insertar usuario:", errInsert);
         return res.status(500).json({ success: false, error: 'El correo electrónico ya existe o hubo un error al crear.' });
       }
 
@@ -362,14 +447,14 @@ app.post('/api/admin/crear-usuario', async (req, res) => {
     });
   });
 });
+
 // ==========================================
-// 7. OBTENER CABAÑAS (VISITANTE)
+// 7. OBTENER CABAÑAS
 // ==========================================
 app.get('/api/cabanas', (req, res) => {
   const sql = 'SELECT * FROM bungalows';
   db.query(sql, (err, results) => {
     if (err) {
-      console.error(err);
       return res.status(500).json({ error: 'Error al consultar cabañas.' });
     }
     res.json(results);
@@ -391,7 +476,6 @@ app.get('/api/reservas/ocupadas/:id', (req, res) => {
 
   db.query(sql, [id], (err, results) => {
     if (err) {
-      console.error('Error al obtener fechas ocupadas:', err);
       return res.status(500).json({ error: 'Error al obtener fechas ocupadas.' });
     }
     res.json(results);
@@ -421,7 +505,6 @@ app.get('/api/reservas', (req, res) => {
 
   db.query(sql, (err, results) => {
     if (err) {
-      console.error(err);
       return res.status(500).json({ error: 'Error al consultar reservas.' });
     }
     res.json(results);
@@ -429,9 +512,9 @@ app.get('/api/reservas', (req, res) => {
 });
 
 // ==========================================
-// 10. CREAR RESERVA
+// 10. CREAR RESERVA (Con envío de correo al cliente)
 // ==========================================
-app.post('/api/reservas', (req, res) => {
+app.post('/api/reservas', async (req, res) => {
   const { cabana_id, id_usuario, nombre, apellidos, email, telefono, fecha_checkin, fecha_checkout, total } = req.body;
 
   const nombreCompleto = `${nombre} ${apellidos}`.trim();
@@ -441,10 +524,38 @@ app.post('/api/reservas', (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'reservada')
   `;
 
-  db.query(sql, [cabana_id, id_usuario || null, nombreCompleto, email, telefono, fecha_checkin, fecha_checkout, total], (err, result) => {
+  db.query(sql, [cabana_id, id_usuario || null, nombreCompleto, email, telefono, fecha_checkin, fecha_checkout, total], async (err, result) => {
     if (err) {
       console.error(err);
       return res.status(500).json({ success: false, error: 'Error al guardar la reserva.' });
+    }
+
+    try {
+      if (email) {
+        const mailOptions = {
+          from: 'Finca Don Litos <fincadonlitos1@gmail.com>',
+          to: email,
+          subject: 'Confirmación de Reserva - Finca Don Litos',
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+              <h2 style="color: #2e4d25;">¡Reserva Exitosamente Creada!</h2>
+              <p>Hola <strong>${nombreCompleto}</strong>,</p>
+              <p>Hemos recibido tu solicitud de reserva en <strong>Finca Don Litos</strong>.</p>
+              <hr style="border: none; border-top: 1px solid #ccc;" />
+              <p><strong>Detalles de tu reserva:</strong></p>
+              <ul>
+                <li><strong>Entrada (Check-in):</strong> ${fecha_checkin}</li>
+                <li><strong>Salida (Check-out):</strong> ${fecha_checkout}</li>
+                <li><strong>Monto Total:</strong> ₡${total}</li>
+              </ul>
+              <p>Nos pondremos en contacto contigo pronto para coordinar los detalles de pago. ¡Te esperamos!</p>
+            </div>
+          `
+        };
+        await transporter.sendMail(mailOptions);
+      }
+    } catch (mailErr) {
+      console.error('⚠️ Error al enviar correo de reserva:', mailErr);
     }
 
     res.json({
@@ -456,19 +567,28 @@ app.post('/api/reservas', (req, res) => {
 });
 
 // ==========================================
-// 11. CAMBIAR ESTADO DE RESERVA
+// 11. ACTUALIZAR ESTADO DE RESERVA
 // ==========================================
-app.put('/api/reservas/:id/estado', (req, res) => {
+app.put('/api/admin/reservas/:id/estado', async (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
+
+  const estadosValidos = ['reservada', 'pagada', 'cancelada'];
+  if (!estadosValidos.includes(estado)) {
+    return res.status(400).json({ success: false, error: 'Estado no válido.' });
+  }
 
   const sql = 'UPDATE finca_don_litos.reservas SET estado = ? WHERE id_reserva = ?';
   db.query(sql, [estado, id], (err, result) => {
     if (err) {
-      console.error(err);
-      return res.status(500).json({ error: 'Error al cambiar estado de la reserva.' });
+      return res.status(500).json({ success: false, error: 'Error al actualizar el estado en la base de datos.' });
     }
-    res.json({ success: true });
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, error: 'Reserva no encontrada.' });
+    }
+
+    res.json({ success: true, mensaje: `Reserva actualizada a '${estado}' exitosamente.` });
   });
 });
 
@@ -479,9 +599,8 @@ app.delete('/api/reservas/:id', (req, res) => {
   const { id } = req.params;
   
   const sql = 'UPDATE finca_don_litos.reservas SET estado = ? WHERE id_reserva = ?';
-  db.query(sql, ['cancelada', id], (err, result) => {
+  db.query(sql, ['cancelada', id], (err) => {
     if (err) {
-      console.error("❌ Error al cancelar reserva:", err);
       return res.status(500).json({ success: false, error: 'Error al cancelar la reserva.' });
     }
     res.json({ success: true, mensaje: 'Reserva cancelada exitosamente.' });

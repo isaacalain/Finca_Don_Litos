@@ -35,6 +35,44 @@ export const Cabanas = ({ setAutenticado }) => {
   const [guardandoPerfil, setGuardandoPerfil] = useState(false);
   const [errorPerfil, setErrorPerfil] = useState('');
 
+  // Estado para el Carrusel de Puerto Viejo, Limón
+  const [currentSlide, setCurrentSlide] = useState(0);
+  
+  const imagenesPuertoViejo = [
+    {
+      url: '/puerto1.png',
+      titulo: 'Playas paradisíacas de arena blanca y aguas turquesas'
+    },
+    {
+      url: '/puerto2.png',
+      titulo: 'Naturaleza exuberante y biodiversidad única'
+    },
+    {
+      url: '/puerto3.png',
+      titulo: 'Atardeceres mágicos en el Caribe costarricense'
+    },
+    {
+      url: '/puerto4.png',
+      titulo: 'Atardeceres mágicos en el Caribe costarricense'
+    }
+  ];
+ 
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prevSlide) => (prevSlide + 1) % imagenesPuertoViejo.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [imagenesPuertoViejo.length]);
+
+  const siguienteSlide = () => {
+    setCurrentSlide((prevSlide) => (prevSlide + 1) % imagenesPuertoViejo.length);
+  };
+
+  const anteriorSlide = () => {
+    setCurrentSlide((prevSlide) => (prevSlide - 1 + imagenesPuertoViejo.length) % imagenesPuertoViejo.length);
+  };
+
   // Estado de fechas ocupadas
   const [fechasOcupadas, setFechasOcupadas] = useState([]);
   const [fechasSeleccionadas, setFechasSeleccionadas] = useState([null, null]);
@@ -128,49 +166,6 @@ export const Cabanas = ({ setAutenticado }) => {
     setErrorPerfil('');
     setMenuPerfilAbierto(false);
     setMostrarModalPerfil(true);
-  };
-
-  const handleGuardarPerfil = async (e) => {
-    e.preventDefault();
-
-    if (!editNombre.trim() || !editCorreo.trim() || !editPasswordActual.trim()) {
-      setErrorPerfil('Nombre, correo y contraseña actual son obligatorios.');
-      return;
-    }
-
-    setGuardandoPerfil(true);
-    setErrorPerfil('');
-
-    try {
-      const response = await fetch('http://localhost:5000/api/perfil', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id_usuario: usuarioLogueado.id || usuarioLogueado.id_usuario,
-          nombre: editNombre.trim(),
-          apellidos: editApellido.trim(),
-          correo: editCorreo.trim(),
-          passwordActual: editPasswordActual.trim(),
-          nuevaPassword: editNuevaPassword.trim()
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert('✅ Perfil actualizado correctamente');
-        setUsuarioLogueado(data.user);
-        localStorage.setItem('adminUsuario', JSON.stringify(data.user));
-        setMostrarModalPerfil(false);
-      } else {
-        setErrorPerfil(data.error || 'Error al actualizar el perfil.');
-      }
-    } catch (err) {
-      console.error(err);
-      setErrorPerfil('Error de conexión al guardar el perfil.');
-    } finally {
-      setGuardandoPerfil(false);
-    }
   };
 
   const cerrarSesion = () => {
@@ -383,6 +378,53 @@ export const Cabanas = ({ setAutenticado }) => {
       </header>
 
       {mensaje && <div style={styles.alertSuccess}>{mensaje}</div>}
+
+      {/* CARRUSEL DE PUERTO VIEJO, LIMÓN */}
+      {imagenesPuertoViejo && imagenesPuertoViejo.length > 0 && (
+        <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto 40px auto', position: 'relative', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
+          <div style={{ width: '100%', height: '320px', position: 'relative', backgroundColor: '#1a202c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img 
+              src={imagenesPuertoViejo[currentSlide]?.url} 
+              alt="Puerto Viejo Limón" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)', padding: '20px', color: 'white' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>
+                🌴 Descubre Puerto Viejo, Limón
+              </h3>
+              <p style={{ margin: '5px 0 0 0', fontSize: '14px', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
+                {imagenesPuertoViejo[currentSlide]?.titulo}
+              </p>
+            </div>
+          </div>
+
+          <button 
+            type="button"
+            onClick={anteriorSlide}
+            style={{ position: 'absolute', top: '50%', left: '15px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}
+          >
+            ❮
+          </button>
+
+          <button 
+            type="button"
+            onClick={siguienteSlide}
+            style={{ position: 'absolute', top: '50%', right: '15px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}
+          >
+            ❯
+          </button>
+
+          <div style={{ position: 'absolute', bottom: '10px', right: '20px', display: 'flex', gap: '6px' }}>
+            {imagenesPuertoViejo.map((_, index) => (
+              <span 
+                key={index} 
+                onClick={() => setCurrentSlide(index)}
+                style={{ width: '10px', height: '10px', borderRadius: '50%', background: currentSlide === index ? '#ffffff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', display: 'inline-block' }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={styles.grid}>
         {cabanas.map((cabana) => {
