@@ -14,7 +14,7 @@ export default function Admin({ setAutenticado }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-
+  const [modalPagoDetalle, setModalPagoDetalle] = useState(null);
   // Datos del Usuario Administrador Logueado
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
     return JSON.parse(localStorage.getItem('adminUsuario') || '{}');
@@ -1030,7 +1030,7 @@ export default function Admin({ setAutenticado }) {
             </div>
           )}
 
-          {/* PESTAÑA 2: LISTA DE RESERVAS */}
+          {/* PESTAÑA 2: LISTA DE RESERVAS Y PAGOS */}
           {tabActiva === 'lista' && (
             <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -1069,79 +1069,212 @@ export default function Admin({ setAutenticado }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#2e4d25', color: 'white' }}>
-                      <th style={{ padding: '12px' }}>ID</th>
-                      <th style={{ padding: '12px' }}>Cabaña</th>
-                      <th style={{ padding: '12px' }}>Cliente</th>
-                      <th style={{ padding: '12px' }}>Contacto</th>
-                      <th style={{ padding: '12px' }}>Check-in</th>
-                      <th style={{ padding: '12px' }}>Check-out</th>
-                      <th style={{ padding: '12px' }}>Total</th>
-                      <th style={{ padding: '12px' }}>Estado</th>
-                      <th style={{ padding: '12px' }}>Acciones</th>
+                      <th style={{ padding: '12px 8px' }}>ID</th>
+                      <th style={{ padding: '12px 8px' }}>Cabaña</th>
+                      <th style={{ padding: '12px 8px' }}>Cliente</th>
+                      <th style={{ padding: '12px 8px' }}>Contacto</th>
+                      <th style={{ padding: '12px 8px' }}>Fechas</th>
+                      <th style={{ padding: '12px 8px' }}>Total</th>
+                      <th style={{ padding: '12px 8px' }}>Método / Ref</th>
+                      <th style={{ padding: '12px 8px' }}>Estado Pago</th>
+                      <th style={{ padding: '12px 8px' }}>Estado Reserva</th>
+                      <th style={{ padding: '12px 8px' }}>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reservasFiltradas.length === 0 ? (
                       <tr>
-                        <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No se encontraron reservas con esos filtros.</td>
+                        <td colSpan="10" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No se encontraron reservas con esos filtros.</td>
                       </tr>
                     ) : (
-                      reservasFiltradas.map((r) => (
-                        <tr key={r.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ padding: '12px' }}>#{r.id}</td>
-                          <td style={{ padding: '12px', fontWeight: 'bold' }}>{r.cabana_nombre}</td>
-                          <td style={{ padding: '12px' }}>{r.nombre_cliente}</td>
-                          <td style={{ padding: '12px' }}>{r.email_cliente}<br /><small>{r.telefono_cliente}</small></td>
-                          <td style={{ padding: '12px' }}>{r.fecha_checkin}</td>
-                          <td style={{ padding: '12px' }}>{r.fecha_checkout}</td>
-                          <td style={{ padding: '12px' }}>₡{Number(r.total).toLocaleString()}</td>
-                          <td style={{ padding: '12px' }}>
-                            <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', ...obtenerEstiloEstado(r.estado) }}>
-                              {r.estado}
-                            </span>
-                          </td>
-                          <td style={{ padding: '12px' }}>
-                            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                              {/* Botón para regresar a estado 'reservada' si no está reservada ya */}
-                              {r.estado !== 'reservada' && (
-                                <button
-                                  type="button"
-                                  onClick={() => cambiarEstadoReserva(r.id, 'reservada')}
-                                  style={{ backgroundColor: '#ffc107', color: '#212529', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
-                                >
-                                  Reservar
-                                </button>
-                              )}
+                      reservasFiltradas.map((r) => {
+                        // 1. Detección robusta del método de pago basado en lo que arroja la base de datos
+                        const rawMetodo = (
+                          r.metodo_pago || 
+                          r.metodo || 
+                          r.pago_metodo || 
+                          ''
+                        ).toString().trim().toUpperCase();
 
-                              {/* Botón para marcar como 'pagada' */}
-                              {r.estado !== 'pagada' && (
-                                <button
-                                  type="button"
-                                  onClick={() => cambiarEstadoReserva(r.id, 'pagada')}
-                                  style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
-                                >
-                                  Pagar
-                                </button>
-                              )}
+                        const esTarjeta = rawMetodo.includes('TARJETA');
+                        const metodoFormateado = esTarjeta ? '💳 Tarjeta' : '📲 SINPE';
 
-                              {/* Botón para marcar como 'cancelada' */}
-                              {r.estado !== 'cancelada' && (
-                                <button
-                                  type="button"
-                                  onClick={() => cambiarEstadoReserva(r.id, 'cancelada')}
-                                  style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
-                                >
-                                  Cancelar
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
+                        // 2. Extraer el comprobante / referencia
+                        const referencia = 
+                          r.comprobante_referencia || 
+                          r.comprobante_url || 
+                          r.comprobante || 
+                          r.referencia || 
+                          r.pago_referencia || 
+                          'Sin comprobante registrado';
+
+                        // 3. Extraer el estado del pago
+                        const estadoPagoVal = 
+                          r.estado_pago || 
+                          r.pago_estado || 
+                          (r.estado === 'pagada' ? 'aprobado' : 'en_revision');
+
+                        return (
+                          <tr key={r.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                            <td style={{ padding: '12px 8px' }}>#{r.id}</td>
+                            <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>{r.cabana_nombre}</td>
+                            <td style={{ padding: '12px 8px' }}>{r.nombre_cliente}</td>
+                            <td style={{ padding: '12px 8px' }}>{r.email_cliente}<br /><small>{r.telefono_cliente}</small></td>
+                            <td style={{ padding: '12px 8px', whiteSpace: 'nowrap' }}>{r.fecha_checkin} <br /> al {r.fecha_checkout}</td>
+                            <td style={{ padding: '12px 8px', whiteSpace: 'nowrap' }}>₡{Number(r.total || 0).toLocaleString('es-CR')}</td>
+                            
+                            {/* BOTÓN DESPLEGABLE DE PAGO */}
+                            <td style={{ padding: '12px 8px' }}>
+                              <button
+                                type="button"
+                                onClick={() => setModalPagoDetalle({
+                                  idReserva: r.id,
+                                  cliente: r.nombre_cliente,
+                                  metodo: metodoFormateado,
+                                  referencia: referencia,
+                                  estadoPago: estadoPagoVal,
+                                  total: r.total
+                                })}
+                                style={{
+                                  backgroundColor: esTarjeta ? '#ebf8ff' : '#f0fff4',
+                                  border: `1px solid ${esTarjeta ? '#3182ce' : '#38a169'}`,
+                                  color: esTarjeta ? '#2b6cb0' : '#22543d',
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  fontWeight: 'bold',
+                                  fontSize: '12px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                                title="Hacer clic para ver detalles del pago"
+                              >
+                                {metodoFormateado} 🔍
+                              </button>
+                            </td>
+
+                            {/* ESTADO DEL PAGO */}
+                            <td style={{ padding: '12px 8px' }}>
+                              <span style={{
+                                padding: '4px 8px',
+                                borderRadius: '12px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                display: 'inline-block',
+                                backgroundColor: estadoPagoVal === 'aprobado' ? '#c6f6d5' : estadoPagoVal === 'rechazado' ? '#fed7d7' : '#feebc8',
+                                color: estadoPagoVal === 'aprobado' ? '#22543d' : estadoPagoVal === 'rechazado' ? '#9b2c2c' : '#744210'
+                              }}>
+                                {estadoPagoVal}
+                              </span>
+                            </td>
+
+                            {/* ESTADO DE LA RESERVA */}
+                            <td style={{ padding: '12px 8px' }}>
+                              <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', display: 'inline-block', ...obtenerEstiloEstado(r.estado) }}>
+                                {r.estado}
+                              </span>
+                            </td>
+
+                            {/* ACCIONES */}
+                            <td style={{ padding: '12px 8px' }}>
+                              <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
+                                {r.estado !== 'reservada' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => cambiarEstadoReserva(r.id, 'reservada')}
+                                    style={{ backgroundColor: '#ffc107', color: '#212529', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                                  >
+                                    Reservar
+                                  </button>
+                                )}
+                                {r.estado !== 'pagada' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => cambiarEstadoReserva(r.id, 'pagada')}
+                                    style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                                  >
+                                    Pagar
+                                  </button>
+                                )}
+                                {r.estado !== 'cancelada' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => cambiarEstadoReserva(r.id, 'cancelada')}
+                                    style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                                  >
+                                    Cancelar
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
               </div>
+
+              {/* MODAL EMERGENTE PARA MOSTRAR DETALLES DEL COMPROBANTE/PAGO */}
+              {modalPagoDetalle && (
+                <div style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1100
+                }}>
+                  <div style={{
+                    backgroundColor: 'white',
+                    padding: '20px 25px',
+                    borderRadius: '10px',
+                    minWidth: '320px',
+                    maxWidth: '420px',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                  }}>
+                    <h3 style={{ marginTop: 0, color: '#2e4d25', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+                      🧾 Detalle del Pago #{modalPagoDetalle.idReserva}
+                    </h3>
+                    
+                    <div style={{ fontSize: '14px', margin: '15px 0', lineHeight: '1.8' }}>
+                      <div><strong>Cliente:</strong> {modalPagoDetalle.cliente}</div>
+                      <div><strong>Método Seleccionado:</strong> {modalPagoDetalle.metodo}</div>
+                      <div style={{ backgroundColor: '#f7fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', margin: '10px 0' }}>
+                        <strong style={{ color: '#2d3748' }}>Comprobante / Referencia:</strong>
+                        <div style={{ fontSize: '15px', color: '#2b6cb0', fontWeight: 'bold', marginTop: '4px', wordBreak: 'break-all' }}>
+                          {modalPagoDetalle.referencia}
+                        </div>
+                      </div>
+                      <div><strong>Monto:</strong> ₡{Number(modalPagoDetalle.total || 0).toLocaleString('es-CR')}</div>
+                      <div><strong>Estado Transacción:</strong> <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{modalPagoDetalle.estadoPago}</span></div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setModalPagoDetalle(null)}
+                      style={{
+                        width: '100%',
+                        backgroundColor: '#2e4d25',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px',
+                        borderRadius: '6px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        marginTop: '10px'
+                      }}
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -483,7 +483,7 @@ app.get('/api/reservas/ocupadas/:id', (req, res) => {
 });
 
 // ==========================================
-// 9. OBTENER TODAS LAS RESERVAS
+// 9. OBTENER TODAS LAS RESERVAS CON DETALLES DE PAGO
 // ==========================================
 app.get('/api/reservas', (req, res) => {
   const sql = `
@@ -497,14 +497,19 @@ app.get('/api/reservas', (req, res) => {
       DATE_FORMAT(r.fecha_inicio, '%Y-%m-%d') AS fecha_checkin,
       DATE_FORMAT(r.fecha_fin, '%Y-%m-%d') AS fecha_checkout,
       r.monto_total AS total,
-      r.estado
+      r.estado,
+      COALESCE(p.metodo_pago, 'SINPE_MOVIL') AS metodo_pago,
+      COALESCE(p.comprobante_url, 'N/A') AS comprobante_referencia,
+      COALESCE(p.estado_pago, 'en_revision') AS estado_pago
     FROM finca_don_litos.reservas r
     JOIN finca_don_litos.bungalows b ON r.id_bungalow = b.id_bungalow
+    LEFT JOIN finca_don_litos.pagos p ON r.id_reserva = p.id_reserva
     ORDER BY r.id_reserva DESC
   `;
 
   db.query(sql, (err, results) => {
     if (err) {
+      console.error('Error al consultar reservas con pagos:', err);
       return res.status(500).json({ error: 'Error al consultar reservas.' });
     }
     res.json(results);
@@ -512,62 +517,112 @@ app.get('/api/reservas', (req, res) => {
 });
 
 // ==========================================
-// 10. CREAR RESERVA (Con envío de correo al cliente)
+// 10. CREAR RESERVA Y REGISTRAR PAGO SIMULADO
 // ==========================================
 app.post('/api/reservas', async (req, res) => {
-  const { cabana_id, id_usuario, nombre, apellidos, email, telefono, fecha_checkin, fecha_checkout, total } = req.body;
+  const { 
+    cabana_id, 
+    id_usuario, 
+    nombre, 
+    apellidos, 
+    email, 
+    telefono, 
+    fecha_checkin, 
+    fecha_checkout, 
+    total, 
+    metodo_pago, 
+    comprobante_referencia 
+  } = req.body;
 
   const nombreCompleto = `${nombre} ${apellidos}`.trim();
+  const metodoPagoFinal = metodo_pago || 'SINPE_MOVIL'; 
+  
+  const estadoPagoInicial = metodoPagoFinal === 'TARJETA' ? 'aprobado' : 'en_revision';
+  const estadoReservaInicial = metodoPagoFinal === 'TARJETA' ? 'pagada' : 'reservada';
 
-  const sql = `
+  // 1. Insertar la reserva principal
+  const sqlReserva = `
     INSERT INTO reservas (id_bungalow, id_usuario, nombre, email, telefono, fecha_inicio, fecha_fin, monto_total, estado)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'reservada')
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
-  db.query(sql, [cabana_id, id_usuario || null, nombreCompleto, email, telefono, fecha_checkin, fecha_checkout, total], async (err, result) => {
+  db.query(sqlReserva, [
+    cabana_id, 
+    id_usuario || null, 
+    nombreCompleto, 
+    email, 
+    telefono, 
+    fecha_checkin, 
+    fecha_checkout, 
+    total, 
+    estadoReservaInicial
+  ], (err, resultReserva) => {
     if (err) {
-      console.error(err);
+      console.error("❌ Error al guardar reserva:", err);
       return res.status(500).json({ success: false, error: 'Error al guardar la reserva.' });
     }
 
-    try {
-      if (email) {
-        const mailOptions = {
-          from: 'Finca Don Litos <fincadonlitos1@gmail.com>',
-          to: email,
-          subject: 'Confirmación de Reserva - Finca Don Litos',
-          html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-              <h2 style="color: #2e4d25;">¡Reserva Exitosamente Creada!</h2>
-              <p>Hola <strong>${nombreCompleto}</strong>,</p>
-              <p>Hemos recibido tu solicitud de reserva en <strong>Finca Don Litos</strong>.</p>
-              <hr style="border: none; border-top: 1px solid #ccc;" />
-              <p><strong>Detalles de tu reserva:</strong></p>
-              <ul>
-                <li><strong>Entrada (Check-in):</strong> ${fecha_checkin}</li>
-                <li><strong>Salida (Check-out):</strong> ${fecha_checkout}</li>
-                <li><strong>Monto Total:</strong> ₡${total}</li>
-              </ul>
-              <p>Nos pondremos en contacto contigo pronto para coordinar los detalles de pago. ¡Te esperamos!</p>
-            </div>
-          `
-        };
-        await transporter.sendMail(mailOptions);
-      }
-    } catch (mailErr) {
-      console.error('⚠️ Error al enviar correo de reserva:', mailErr);
-    }
+    const idReservaCreada = resultReserva.insertId;
 
-    res.json({
-      success: true,
-      id_reserva: result.insertId,
-      mensaje: 'Reserva creada exitosamente'
+    // 2. Insertar el registro financiero en la tabla 'pagos'
+    const sqlPago = `
+      INSERT INTO pagos (id_reserva, metodo_pago, comprobante_url, estado_pago)
+      VALUES (?, ?, ?, ?)
+    `;
+
+    db.query(sqlPago, [
+      idReservaCreada, 
+      metodoPagoFinal, 
+      comprobante_referencia || 'SIN-COMPROBANTE', 
+      estadoPagoInicial
+    ], async (errPago) => {
+      if (errPago) {
+        console.error('⚠️ Error al registrar el pago en la tabla pagos:', errPago);
+      }
+
+      // 3. Enviar correo electrónico de confirmación
+      try {
+        if (email) {
+          const mailOptions = {
+            from: 'Finca Don Litos <fincadonlitos1@gmail.com>',
+            to: email,
+            subject: 'Confirmación de Reserva y Pago - Finca Don Litos',
+            html: `
+              <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                <h2 style="color: #2e4d25;">¡Reserva Registrada Exitosamente!</h2>
+                <p>Hola <strong>${nombreCompleto}</strong>,</p>
+                <p>Hemos recibido tu solicitud de reserva en <strong>Finca Don Litos</strong>.</p>
+                <hr style="border: none; border-top: 1px solid #ccc;" />
+                <p><strong>Detalles de la transacción:</strong></p>
+                <ul>
+                  <li><strong>Entrada (Check-in):</strong> ${fecha_checkin}</li>
+                  <li><strong>Salida (Check-out):</strong> ${fecha_checkout}</li>
+                  <li><strong>Monto Total:</strong> ₡${total}</li>
+                  <li><strong>Método de Pago:</strong> ${metodoPagoFinal}</li>
+                  <li><strong>Referencia / Comprobante:</strong> ${comprobante_referencia || 'N/A'}</li>
+                  <li><strong>Estado del Pago:</strong> ${estadoPagoInicial}</li>
+                </ul>
+                <p>¡Te esperamos!</p>
+              </div>
+            `
+          };
+          await transporter.sendMail(mailOptions);
+        }
+      } catch (mailErr) {
+        console.error('⚠️ Error al enviar correo de confirmación:', mailErr);
+      }
+
+      res.json({
+        success: true,
+        id_reserva: idReservaCreada,
+        mensaje: 'Reserva y pago simulado registrados correctamente'
+      });
     });
   });
 });
 
 // ==========================================
-// 11. ACTUALIZAR ESTADO DE RESERVA
+// 11. ACTUALIZAR ESTADO DE RESERVA Y SINCRONIZAR PAGO
 // ==========================================
 app.put('/api/admin/reservas/:id/estado', async (req, res) => {
   const { id } = req.params;
@@ -578,17 +633,31 @@ app.put('/api/admin/reservas/:id/estado', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Estado no válido.' });
   }
 
-  const sql = 'UPDATE finca_don_litos.reservas SET estado = ? WHERE id_reserva = ?';
-  db.query(sql, [estado, id], (err, result) => {
+  // 1. Actualizar el estado en la tabla 'reservas'
+  const sqlReserva = 'UPDATE finca_don_litos.reservas SET estado = ? WHERE id_reserva = ?';
+  
+  db.query(sqlReserva, [estado, id], (err, result) => {
     if (err) {
-      return res.status(500).json({ success: false, error: 'Error al actualizar el estado en la base de datos.' });
+      return res.status(500).json({ success: false, error: 'Error al actualizar el estado de la reserva.' });
     }
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, error: 'Reserva no encontrada.' });
     }
 
-    res.json({ success: true, mensaje: `Reserva actualizada a '${estado}' exitosamente.` });
+    // 2. Sincronizar automáticamente el estado financiero en la tabla 'pagos'
+    let estadoPagoSync = 'en_revision';
+    if (estado === 'pagada') estadoPagoSync = 'aprobado';
+    if (estado === 'cancelada') estadoPagoSync = 'rechazado';
+
+    const sqlPagoSync = 'UPDATE finca_don_litos.pagos SET estado_pago = ? WHERE id_reserva = ?';
+    db.query(sqlPagoSync, [estadoPagoSync, id], (errPago) => {
+      if (errPago) {
+        console.error('⚠️ Advertencia: No se pudo sincronizar el estado del pago:', errPago);
+      }
+
+      res.json({ success: true, mensaje: `Reserva actualizada a '${estado}' y pago sincronizado exitosamente.` });
+    });
   });
 });
 

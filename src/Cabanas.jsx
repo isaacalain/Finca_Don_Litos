@@ -56,7 +56,6 @@ export const Cabanas = ({ setAutenticado }) => {
       titulo: 'Atardeceres mágicos en el Caribe costarricense'
     }
   ];
- 
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -79,11 +78,16 @@ export const Cabanas = ({ setAutenticado }) => {
   const [fechaCheckin, fechaCheckout] = fechasSeleccionadas;
   const [errorFecha, setErrorFecha] = useState('');
 
+  // Formulario con campos de datos personales, método de pago y simulador de tarjeta
   const [formData, setFormData] = useState({
     nombre: '',
     apellidos: '',
     email: '',
-    telefono: ''
+    telefono: '',
+    metodo_pago: 'SINPE_MOVIL',
+    comprobante_referencia: '',
+    tarjeta_vencimiento: '',
+    tarjeta_cvv: ''
   });
   const [mensaje, setMensaje] = useState('');
 
@@ -275,6 +279,13 @@ export const Cabanas = ({ setAutenticado }) => {
     const strCheckin = format(fechaCheckin, 'yyyy-MM-dd');
     const strCheckout = format(fechaCheckout, 'yyyy-MM-dd');
 
+    // Formatear referencia si es tarjeta
+    let refFinal = formData.comprobante_referencia;
+    if (formData.metodo_pago === 'TARJETA') {
+      const ultimosDigitos = formData.comprobante_referencia.slice(-4) || '4242';
+      refFinal = `TARJETA (**** ${ultimosDigitos})`;
+    }
+
     try {
       const response = await fetch('http://localhost:5000/api/reservas', {
         method: 'POST',
@@ -288,7 +299,9 @@ export const Cabanas = ({ setAutenticado }) => {
           telefono: formData.telefono,
           fecha_checkin: strCheckin,
           fecha_checkout: strCheckout,
-          total
+          total,
+          metodo_pago: formData.metodo_pago,
+          comprobante_referencia: refFinal
         })
       });
 
@@ -298,6 +311,12 @@ export const Cabanas = ({ setAutenticado }) => {
         setMensaje('¡Reserva creada exitosamente! Se ha enviado un correo de confirmación.');
         setSelectedCabana(null);
         setFechasSeleccionadas([null, null]);
+        setFormData((prev) => ({ 
+          ...prev, 
+          comprobante_referencia: '',
+          tarjeta_vencimiento: '',
+          tarjeta_cvv: ''
+        }));
       } else {
         alert('Error al realizar la reserva: ' + (resData.error || 'Ocurrió un error'));
       }
@@ -521,7 +540,7 @@ export const Cabanas = ({ setAutenticado }) => {
         </div>
       )}
 
-      {/* Modal 2: Formulario de Reserva */}
+      {/* Modal 2: Formulario de Reserva con Simulador de Pago */}
       {selectedCabana && (
         <div style={styles.modalOverlay} onClick={() => setSelectedCabana(null)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -538,6 +557,80 @@ export const Cabanas = ({ setAutenticado }) => {
 
               <label style={styles.label}>Teléfono:</label>
               <input type="tel" name="telefono" required style={styles.input} value={formData.telefono} onChange={handleChange} />
+
+              {/* SECCIÓN DEL SIMULADOR DE PAGO */}
+              <label style={styles.label}>Método de Pago:</label>
+              <select 
+                name="metodo_pago" 
+                style={styles.input} 
+                value={formData.metodo_pago} 
+                onChange={handleChange}
+              >
+                <option value="SINPE_MOVIL">SINPE Móvil</option>
+                <option value="TARJETA">Tarjeta de Crédito / Débito (Simulador)</option>
+              </select>
+
+              {formData.metodo_pago === 'SINPE_MOVIL' ? (
+                <div style={{ backgroundColor: '#f0fff4', border: '1px solid #c6f6d5', padding: '12px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem', color: '#22543d' }}>
+                  <p style={{ margin: '0 0 6px 0' }}>📲 Realiza tu SINPE Móvil al número: <strong>8888-8888</strong> (Finca Don Litos).</p>
+                  <label style={{ ...styles.label, marginBottom: '4px' }}>Número de comprobante o referencia:</label>
+                  <input 
+                    type="text" 
+                    name="comprobante_referencia" 
+                    required 
+                    placeholder="Ej. Comprobante #987654"
+                    style={{ ...styles.input, marginBottom: 0 }} 
+                    value={formData.comprobante_referencia} 
+                    onChange={handleChange} 
+                  />
+                </div>
+              ) : (
+                <div style={{ backgroundColor: '#ebf8ff', border: '1px solid #bee3f8', padding: '14px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem', color: '#2b6cb0' }}>
+                  <p style={{ margin: '0 0 10px 0', fontWeight: '600' }}>💳 Simulador de Pasarela de Pagos Segura</p>
+                  
+                  <label style={{ ...styles.label, marginBottom: '4px' }}>Número de Tarjeta:</label>
+                  <input 
+                    type="text" 
+                    name="comprobante_referencia" 
+                    required 
+                    maxLength="19"
+                    placeholder="1234 5678 9101 1121"
+                    style={styles.input} 
+                    value={formData.comprobante_referencia} 
+                    onChange={handleChange} 
+                  />
+
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ ...styles.label, marginBottom: '4px' }}>Vencimiento:</label>
+                      <input 
+                        type="text" 
+                        name="tarjeta_vencimiento" 
+                        required 
+                        maxLength="5"
+                        placeholder="MM/AA"
+                        style={{ ...styles.input, marginBottom: 0 }} 
+                        value={formData.tarjeta_vencimiento} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ ...styles.label, marginBottom: '4px' }}>CVV / CVC:</label>
+                      <input 
+                        type="password" 
+                        name="tarjeta_cvv" 
+                        required 
+                        maxLength="4"
+                        placeholder="123"
+                        style={{ ...styles.input, marginBottom: 0 }} 
+                        value={formData.tarjeta_cvv} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* FIN DE SECCIÓN DE PAGO */}
 
               <label style={styles.label}>Selecciona tu rango de hospedaje:</label>
               <div style={{ marginBottom: '10px', textAlign: 'center' }}>
