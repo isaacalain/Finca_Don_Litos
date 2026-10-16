@@ -15,11 +15,13 @@ export default function Admin({ setAutenticado }) {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const [modalPagoDetalle, setModalPagoDetalle] = useState(null);
+  const [nuevoComprobanteAdmin, setNuevoComprobanteAdmin] = useState('');
+  const [guardandoComprobante, setGuardandoComprobante] = useState(false);
   // Datos del Usuario Administrador Logueado
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
     return JSON.parse(localStorage.getItem('adminUsuario') || '{}');
   });
-
+  
   // Estado para abrir/cerrar el menú desplegable del perfil
   const [menuPerfilAbierto, setMenuPerfilAbierto] = useState(false);
   const menuRef = useRef(null);
@@ -438,12 +440,48 @@ export default function Admin({ setAutenticado }) {
           )
         );
         alert(`Reserva actualizada a '${nuevoEstado}' con éxito`);
+        obtenerDatos();
       } else {
         alert('Error al actualizar el estado de la reserva');
       }
     } catch (err) {
       console.error(err);
       alert('Error de conexión al cambiar el estado');
+    }
+  };
+
+  // Guardar nuevo comprobante de pago
+  const handleGuardarComprobanteAdmin = async (idReserva) => {
+    if (!nuevoComprobanteAdmin.trim()) {
+      alert('Por favor ingresa un número de comprobante o referencia válido.');
+      return;
+    }
+
+    setGuardandoComprobante(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/admin/pagos/comprobante', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id_reserva: idReserva,
+          comprobante: nuevoComprobanteAdmin.trim()
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Comprobante registrado con éxito.');
+        setModalPagoDetalle(null);
+        setNuevoComprobanteAdmin('');
+        obtenerDatos();
+      } else {
+        alert(data.error || 'Error al actualizar el comprobante.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de conexión con el servidor.');
+    } finally {
+      setGuardandoComprobante(false);
     }
   };
 
@@ -476,7 +514,6 @@ export default function Admin({ setAutenticado }) {
   const prepararCrearUsuario = (e) => {
     e.preventDefault();
 
-    // Verificamos que las variables de estado existan y tengan valores
     if (
       !nuevoNombre || !nuevoNombre.trim() ||
       !nuevoApellido || !nuevoApellido.trim() ||
@@ -487,7 +524,6 @@ export default function Admin({ setAutenticado }) {
       return;
     }
 
-    // Validación de mínimo 6 caracteres en el Frontend
     if (nuevaPassword.trim().length < 6) {
       alert('⚠️ La contraseña debe tener al menos 6 caracteres.');
       return;
@@ -497,6 +533,7 @@ export default function Admin({ setAutenticado }) {
     setAdminPasswordConfirm('');
     setMostrarModalAuth(true);
   };
+
   // 7. Enviar creación de usuario a la API con la confirmación de la contraseña de admin
   const confirmarYCrearUsuario = async (e) => {
     e.preventDefault();
@@ -548,6 +585,7 @@ export default function Admin({ setAutenticado }) {
       setGuardandoUsuario(false);
     }
   };
+
   // 9. Cerrar sesión
   const cerrarSesion = () => {
     localStorage.removeItem('adminAutenticado');
@@ -1088,7 +1126,6 @@ export default function Admin({ setAutenticado }) {
                       </tr>
                     ) : (
                       reservasFiltradas.map((r) => {
-                        // 1. Detección robusta del método de pago basado en lo que arroja la base de datos
                         const rawMetodo = (
                           r.metodo_pago || 
                           r.metodo || 
@@ -1099,17 +1136,15 @@ export default function Admin({ setAutenticado }) {
                         const esTarjeta = rawMetodo.includes('TARJETA');
                         const metodoFormateado = esTarjeta ? '💳 Tarjeta' : '📲 SINPE';
 
-                        // 2. Extraer el comprobante / referencia
-                        const referencia = 
+                        const referencia =
                           r.comprobante_referencia || 
                           r.comprobante_url || 
                           r.comprobante || 
                           r.referencia || 
                           r.pago_referencia || 
-                          'Sin comprobante registrado';
+                          'SIN-COMPROBANTE';
 
-                        // 3. Extraer el estado del pago
-                        const estadoPagoVal = 
+                        const estadoPagoVal =
                           r.estado_pago || 
                           r.pago_estado || 
                           (r.estado === 'pagada' ? 'aprobado' : 'en_revision');
@@ -1122,19 +1157,22 @@ export default function Admin({ setAutenticado }) {
                             <td style={{ padding: '12px 8px' }}>{r.email_cliente}<br /><small>{r.telefono_cliente}</small></td>
                             <td style={{ padding: '12px 8px', whiteSpace: 'nowrap' }}>{r.fecha_checkin} <br /> al {r.fecha_checkout}</td>
                             <td style={{ padding: '12px 8px', whiteSpace: 'nowrap' }}>₡{Number(r.total || 0).toLocaleString('es-CR')}</td>
-                            
+
                             {/* BOTÓN DESPLEGABLE DE PAGO */}
                             <td style={{ padding: '12px 8px' }}>
                               <button
                                 type="button"
-                                onClick={() => setModalPagoDetalle({
-                                  idReserva: r.id,
-                                  cliente: r.nombre_cliente,
-                                  metodo: metodoFormateado,
-                                  referencia: referencia,
-                                  estadoPago: estadoPagoVal,
-                                  total: r.total
-                                })}
+                                onClick={() => {
+                                  setNuevoComprobanteAdmin('');
+                                  setModalPagoDetalle({
+                                    idReserva: r.id,
+                                    cliente: r.nombre_cliente,
+                                    metodo: metodoFormateado,
+                                    referencia: referencia,
+                                    estadoPago: estadoPagoVal,
+                                    total: r.total
+                                  });
+                                }}
                                 style={{
                                   backgroundColor: esTarjeta ? '#ebf8ff' : '#f0fff4',
                                   border: `1px solid ${esTarjeta ? '#3182ce' : '#38a169'}`,
@@ -1215,66 +1253,98 @@ export default function Admin({ setAutenticado }) {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
 
-              {/* MODAL EMERGENTE PARA MOSTRAR DETALLES DEL COMPROBANTE/PAGO */}
-              {modalPagoDetalle && (
-                <div style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'rgba(0,0,0,0.5)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 1100
-                }}>
-                  <div style={{
-                    backgroundColor: 'white',
-                    padding: '20px 25px',
-                    borderRadius: '10px',
-                    minWidth: '320px',
-                    maxWidth: '420px',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-                  }}>
-                    <h3 style={{ marginTop: 0, color: '#2e4d25', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
-                      🧾 Detalle del Pago #{modalPagoDetalle.idReserva}
-                    </h3>
+          {/* MODAL EMERGENTE PARA MOSTRAR Y REGISTRAR COMPROBANTE DE PAGO */}
+          {modalPagoDetalle && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1100
+            }}>
+              <div style={{
+                backgroundColor: 'white',
+                padding: '20px 25px',
+                borderRadius: '10px',
+                minWidth: '340px',
+                maxWidth: '440px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+              }}>
+                <h3 style={{ marginTop: 0, color: '#2e4d25', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+                  🧾 Detalle del Pago #{modalPagoDetalle.idReserva}
+                </h3>
+                
+                <div style={{ fontSize: '14px', margin: '15px 0', lineHeight: '1.8' }}>
+                  <div><strong>Cliente:</strong> {modalPagoDetalle.cliente}</div>
+                  <div><strong>Método Seleccionado:</strong> {modalPagoDetalle.metodo}</div>
+                  
+                  <div style={{ backgroundColor: '#f7fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', margin: '10px 0' }}>
+                    <strong style={{ color: '#2d3748' }}>Comprobante / Referencia:</strong>
                     
-                    <div style={{ fontSize: '14px', margin: '15px 0', lineHeight: '1.8' }}>
-                      <div><strong>Cliente:</strong> {modalPagoDetalle.cliente}</div>
-                      <div><strong>Método Seleccionado:</strong> {modalPagoDetalle.metodo}</div>
-                      <div style={{ backgroundColor: '#f7fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', margin: '10px 0' }}>
-                        <strong style={{ color: '#2d3748' }}>Comprobante / Referencia:</strong>
-                        <div style={{ fontSize: '15px', color: '#2b6cb0', fontWeight: 'bold', marginTop: '4px', wordBreak: 'break-all' }}>
-                          {modalPagoDetalle.referencia}
+                    {/* Si no hay comprobante o dice SIN-COMPROBANTE */}
+                    {(!modalPagoDetalle.referencia || modalPagoDetalle.referencia === 'SIN-COMPROBANTE' || modalPagoDetalle.referencia === 'Sin comprobante registrado') ? (
+                      <div style={{ marginTop: '8px' }}>
+                        <span style={{ color: '#e53e3e', fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>
+                          ⚠️ No hay comprobante registrado
+                        </span>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <input
+                            type="text"
+                            placeholder="Ej: 99887766 o Ref-1234"
+                            value={nuevoComprobanteAdmin}
+                            onChange={(e) => setNuevoComprobanteAdmin(e.target.value)}
+                            style={{ flex: 1, padding: '6px 8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px' }}
+                          />
+                          <button
+                            type="button"
+                            disabled={guardandoComprobante}
+                            onClick={() => handleGuardarComprobanteAdmin(modalPagoDetalle.idReserva)}
+                            style={{ backgroundColor: '#2b6cb0', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                          >
+                            {guardandoComprobante ? 'Guardando...' : 'Registrar'}
+                          </button>
                         </div>
                       </div>
-                      <div><strong>Monto:</strong> ₡{Number(modalPagoDetalle.total || 0).toLocaleString('es-CR')}</div>
-                      <div><strong>Estado Transacción:</strong> <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{modalPagoDetalle.estadoPago}</span></div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setModalPagoDetalle(null)}
-                      style={{
-                        width: '100%',
-                        backgroundColor: '#2e4d25',
-                        color: 'white',
-                        border: 'none',
-                        padding: '10px',
-                        borderRadius: '6px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        marginTop: '10px'
-                      }}
-                    >
-                      Cerrar
-                    </button>
+                    ) : (
+                      <div style={{ fontSize: '15px', color: '#2b6cb0', fontWeight: 'bold', marginTop: '4px', wordBreak: 'break-all' }}>
+                        {modalPagoDetalle.referencia}
+                      </div>
+                    )}
                   </div>
+
+                  <div><strong>Monto:</strong> ₡{Number(modalPagoDetalle.total || 0).toLocaleString('es-CR')}</div>
+                  <div><strong>Estado Transacción:</strong> <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{modalPagoDetalle.estadoPago}</span></div>
                 </div>
-              )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalPagoDetalle(null);
+                    setNuevoComprobanteAdmin('');
+                  }}
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#2e4d25',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    marginTop: '10px'
+                  }}
+                >
+                  Cerrar
+                </button>
+              </div>
             </div>
           )}
 

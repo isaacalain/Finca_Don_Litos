@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { isWithinInterval, eachDayOfInterval, isBefore, startOfDay, format } from 'date-fns';
-
+import { Navbar } from './Navbar';
+import { Footer } from './Footer';
 export const Cabanas = ({ setAutenticado }) => {
   const [cabanas, setCabanas] = useState([]);
   const [selectedCabana, setSelectedCabana] = useState(null);
@@ -192,13 +193,31 @@ export const Cabanas = ({ setAutenticado }) => {
     setCurrentImageIndex(0);
   };
 
-  const getImages = (cabana) => {
-    if (!cabana || !cabana.imagen_url) {
-      return ['https://via.placeholder.com/600x400?text=Sin+Imagen'];
+ const getImages = (cabana) => {
+    if (!cabana || !cabana.nombre) {
+      return ['/images/default.jpg'];
     }
-    return cabana.imagen_url.split(',').map((url) => url.trim());
-  };
 
+    const nombreLower = cabana.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    let carpeta = 'tucan'; 
+
+    
+    if (nombreLower.includes('tucan')) {
+      carpeta = 'tucan';
+    } else if (nombreLower.includes('perezoso')) {
+      carpeta = 'perezoso';
+    } else if (nombreLower.includes('congo')) {
+      carpeta = 'congo';
+    }
+
+    return [
+      `/images/${carpeta}/${carpeta}1.jpeg`,
+      `/images/${carpeta}/${carpeta}2.jpeg`,
+      `/images/${carpeta}/${carpeta}3.jpeg`,
+      `/images/${carpeta}/${carpeta}4.jpeg`,
+      `/images/${carpeta}/${carpeta}5.jpeg`,
+    ];
+  };
   const nextImage = () => {
     const images = getImages(detailCabana);
     setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
@@ -208,7 +227,6 @@ export const Cabanas = ({ setAutenticado }) => {
     const images = getImages(detailCabana);
     setCurrentImageIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length);
   };
-
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -327,345 +345,353 @@ export const Cabanas = ({ setAutenticado }) => {
   };
 
   return (
-    <div style={styles.container}>
-      <style>{`
-        .dia-ocupado { background-color: #dc3545 !important; color: #ffffff !important; text-decoration: line-through !important; border-radius: 50% !important; cursor: not-allowed !important; opacity: 0.8; }
-        .dia-disponible { background-color: #d4edda !important; color: #155724 !important; border-radius: 50% !important; }
-        .dia-disponible:hover { background-color: #c3e6cb !important; }
-        .react-datepicker__day--range-start, .react-datepicker__day--selecting-range-start { background-color: #1b4332 !important; color: #ffffff !important; font-weight: bold !important; border-radius: 50% 0 0 50% !important; }
-        .react-datepicker__day--range-end { background-color: #1b4332 !important; color: #ffffff !important; font-weight: bold !important; border-radius: 0 50% 50% 0 !important; }
-        .react-datepicker__day--in-range:not(.react-datepicker__day--range-start):not(.react-datepicker__day--range-end), .react-datepicker__day--in-selecting-range { background-color: #52b788 !important; color: #ffffff !important; border-radius: 0 !important; }
-        .dia-pasado { opacity: 0.25; }
-        .react-datepicker { font-family: inherit; border: 1px solid #cbd5e0; border-radius: 12px; overflow: hidden; width: 100%; }
-        .react-datepicker__month-container { width: 100%; }
-        .react-datepicker__header { background-color: #2e4d25; }
-        .react-datepicker__current-month, .react-datepicker__day-name { color: #ffffff !important; }
-      `}</style>
+    <>
+      {/* 1. Navbar con menú desplegable de 3 rayitas */}
+      <Navbar />
 
-      {/* Menú Superior */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
-        {usuarioLogueado && usuarioLogueado.rol !== 'visitante' && usuarioLogueado.nombre ? (
-          <div ref={menuRef} style={{ position: 'relative' }}>
-            <div 
-              onClick={() => setMenuPerfilAbierto(!menuPerfilAbierto)}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', backgroundColor: '#2e4d25', color: 'white', padding: '6px 14px 6px 8px', borderRadius: '25px', boxShadow: '0 2px 5px rgba(0,0,0,0.15)' }}
-            >
-              <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: '#17a2b8', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', border: '2px solid white' }}>
-                {obtenerIniciales()}
+      <div style={styles.container}>
+        <style>{`
+          .dia-ocupado { background-color: #dc3545 !important; color: #ffffff !important; text-decoration: line-through !important; border-radius: 50% !important; cursor: not-allowed !important; opacity: 0.8; }
+          .dia-disponible { background-color: #d4edda !important; color: #155724 !important; border-radius: 50% !important; }
+          .dia-disponible:hover { background-color: #c3e6cb !important; }
+          .react-datepicker__day--range-start, .react-datepicker__day--selecting-range-start { background-color: #1b4332 !important; color: #ffffff !important; font-weight: bold !important; border-radius: 50% 0 0 50% !important; }
+          .react-datepicker__day--range-end { background-color: #1b4332 !important; color: #ffffff !important; font-weight: bold !important; border-radius: 0 50% 50% 0 !important; }
+          .react-datepicker__day--in-range:not(.react-datepicker__day--range-start):not(.react-datepicker__day--range-end), .react-datepicker__day--in-selecting-range { background-color: #52b788 !important; color: #ffffff !important; border-radius: 0 !important; }
+          .dia-pasado { opacity: 0.25; }
+          .react-datepicker { font-family: inherit; border: 1px solid #cbd5e0; border-radius: 12px; overflow: hidden; width: 100%; }
+          .react-datepicker__month-container { width: 100%; }
+          .react-datepicker__header { background-color: #2e4d25; }
+          .react-datepicker__current-month, .react-datepicker__day-name { color: #ffffff !important; }
+        `}</style>
+
+        {/* Menú Superior de Usuario */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+          {usuarioLogueado && usuarioLogueado.rol !== 'visitante' && usuarioLogueado.nombre ? (
+            <div ref={menuRef} style={{ position: 'relative' }}>
+              <div 
+                onClick={() => setMenuPerfilAbierto(!menuPerfilAbierto)}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', backgroundColor: '#2e4d25', color: 'white', padding: '6px 14px 6px 8px', borderRadius: '25px', boxShadow: '0 2px 5px rgba(0,0,0,0.15)' }}
+              >
+                <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: '#17a2b8', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', border: '2px solid white' }}>
+                  {obtenerIniciales()}
+                </div>
+                <div style={{ textAlign: 'left', lineHeight: '1.2' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{usuarioLogueado.nombre}</div>
+                  <small style={{ fontSize: '10px', opacity: 0.8 }}>▼ Menú</small>
+                </div>
               </div>
-              <div style={{ textAlign: 'left', lineHeight: '1.2' }}>
-                <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{usuarioLogueado.nombre}</div>
-                <small style={{ fontSize: '10px', opacity: 0.8 }}>▼ Menú</small>
+
+              {menuPerfilAbierto && (
+                <div style={{ position: 'absolute', right: 0, top: '50px', backgroundColor: 'white', color: '#333', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', width: '200px', zIndex: 100, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                  <div style={{ padding: '12px 15px', borderBottom: '1px solid #eee', backgroundColor: '#f8f9fa' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{usuarioLogueado.nombre} {usuarioLogueado.apellidos}</div>
+                    <div style={{ fontSize: '11px', color: '#666', wordBreak: 'break-all' }}>{usuarioLogueado.correo}</div>
+                  </div>
+                  <button onClick={abrirModalPerfil} style={{ width: '100%', padding: '10px 15px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', color: '#2e4d25', borderBottom: '1px solid #eee' }}>
+                    ⚙️ Editar Perfil
+                  </button>
+                  <button onClick={cerrarSesion} style={{ width: '100%', padding: '10px 15px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', color: '#dc3545' }}>
+                    🚪 Cerrar Sesión
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <span style={{ fontSize: '13px', color: '#666' }}>Modo Visitante 👀</span>
+              <button onClick={() => navigate('/login')} style={{ backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
+                Iniciar Sesión / Registrarse
+              </button>
+            </div>
+          )}
+        </div>
+
+        <header style={styles.header}>
+          <span style={styles.headerBadge}> </span>
+          <h1 style={styles.title}>Finca Don Litos</h1>
+          <div style={styles.subtitleWrapper}>
+            <span style={styles.subtitleTag}> Piscina común</span>
+            <span style={styles.subtitleDot}>•</span>
+            <span style={styles.subtitleTag}> Parqueo privado</span>
+            <span style={styles.subtitleDot}>•</span>
+            <span style={styles.subtitleTag}> Pet Friendly</span>
+          </div>
+        </header>
+
+        {mensaje && <div style={styles.alertSuccess}>{mensaje}</div>}
+
+        {/* CARRUSEL DE PUERTO VIEJO, LIMÓN */}
+        {imagenesPuertoViejo && imagenesPuertoViejo.length > 0 && (
+          <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto 40px auto', position: 'relative', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
+            <div style={{ width: '100%', height: '320px', position: 'relative', backgroundColor: '#1a202c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img 
+                src={imagenesPuertoViejo[currentSlide]?.url} 
+                alt="Puerto Viejo Limón" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)', padding: '20px', color: 'white' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>
+                  🌴 Descubre Puerto Viejo, Limón
+                </h3>
+                <p style={{ margin: '5px 0 0 0', fontSize: '14px', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
+                  {imagenesPuertoViejo[currentSlide]?.titulo}
+                </p>
               </div>
             </div>
 
-            {menuPerfilAbierto && (
-              <div style={{ position: 'absolute', right: 0, top: '50px', backgroundColor: 'white', color: '#333', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', width: '200px', zIndex: 100, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-                <div style={{ padding: '12px 15px', borderBottom: '1px solid #eee', backgroundColor: '#f8f9fa' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{usuarioLogueado.nombre} {usuarioLogueado.apellidos}</div>
-                  <div style={{ fontSize: '11px', color: '#666', wordBreak: 'break-all' }}>{usuarioLogueado.correo}</div>
+            <button 
+              type="button"
+              onClick={anteriorSlide}
+              style={{ position: 'absolute', top: '50%', left: '15px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}
+            >
+              ❮
+            </button>
+
+            <button 
+              type="button"
+              onClick={siguienteSlide}
+              style={{ position: 'absolute', top: '50%', right: '15px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}
+            >
+              ❯
+            </button>
+
+            <div style={{ position: 'absolute', bottom: '10px', right: '20px', display: 'flex', gap: '6px' }}>
+              {imagenesPuertoViejo.map((_, index) => (
+                <span 
+                  key={index} 
+                  onClick={() => setCurrentSlide(index)}
+                  style={{ width: '10px', height: '10px', borderRadius: '50%', background: currentSlide === index ? '#ffffff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', display: 'inline-block' }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={styles.grid}>
+          {cabanas.map((cabana) => {
+            const images = getImages(cabana);
+            return (
+              <div key={cabana.id_bungalow} style={styles.card} onClick={() => handleOpenDetail(cabana)}>
+                <div style={styles.imageContainer}>
+                  <img src={images[0]} alt={cabana.nombre} style={styles.cardImage} />
                 </div>
-                <button onClick={abrirModalPerfil} style={{ width: '100%', padding: '10px 15px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', color: '#2e4d25', borderBottom: '1px solid #eee' }}>
-                  ⚙️ Editar Perfil
+                <div style={styles.cardBody}>
+                  <h3 style={styles.cardTitle}>{cabana.nombre}</h3>
+                  <p style={styles.cardDesc}>{cabana.descripcion}</p>
+                  
+                  <div style={styles.capacityBadge}>
+                    👥 Hasta <strong>{cabana.capacidad} personas</strong>
+                  </div>
+
+                  <div style={styles.priceContainer}>
+                    <span style={styles.priceAmount}>₡{Number(cabana.precio_noche || 0).toLocaleString('es-CR')}</span>
+                    <span style={styles.priceUnit}> / noche</span>
+                  </div>
+
+                  <button
+                    style={styles.btnPrimary}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      intentarReservar(cabana);
+                    }}
+                  >
+                    Reservar Cabaña
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* MODAL AVISO VISITANTE */}
+        {mostrarModalAvisoLogin && (
+          <div style={styles.modalOverlay} onClick={() => setMostrarModalAvisoLogin(false)}>
+            <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <h3 style={{ marginTop: 0, color: '#2e4d25', textAlign: 'center' }}>🔒 Inicia Sesión para Reservar</h3>
+              <p style={{ fontSize: '0.95rem', color: '#4a5568', textAlign: 'center', lineHeight: '1.5', marginBottom: '20px' }}>
+                Estás navegando como <strong>Visitante</strong>. Para poder realizar una reserva en Finca Don Litos, necesitas iniciar sesión en tu cuenta o registrarte.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button onClick={() => navigate('/login')} style={styles.btnPrimary}>
+                  🔑 Ir a Iniciar Sesión / Registrarme
                 </button>
-                <button onClick={cerrarSesion} style={{ width: '100%', padding: '10px 15px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', color: '#dc3545' }}>
-                  🚪 Cerrar Sesión
+                <button type="button" onClick={() => setMostrarModalAvisoLogin(false)} style={styles.btnSecondary}>
+                  Seguir viendo cabañas
                 </button>
               </div>
-            )}
+            </div>
           </div>
-        ) : (
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: '#666' }}>Modo Visitante 👀</span>
-            <button onClick={() => navigate('/login')} style={{ backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
-              Iniciar Sesión / Registrarse
-            </button>
+        )}
+
+        {/* Modal 1: Detalle y Carrusel */}
+        {detailCabana && (
+          <div style={styles.modalOverlay} onClick={() => setDetailCabana(null)}>
+            <div style={styles.detailModalContent} onClick={(e) => e.stopPropagation()}>
+              <button style={styles.closeBtn} onClick={() => setDetailCabana(null)}>✕</button>
+
+              <div style={styles.carouselContainer}>
+                <img src={getImages(detailCabana)[currentImageIndex]} alt={detailCabana.nombre} style={styles.carouselImage} />
+                {getImages(detailCabana).length > 1 && (
+                  <>
+                    <button style={{ ...styles.carouselBtn, left: '10px' }} onClick={prevImage}>❮</button>
+                    <button style={{ ...styles.carouselBtn, right: '10px' }} onClick={nextImage}>❯</button>
+                    <div style={styles.imageCounter}>{currentImageIndex + 1} / {getImages(detailCabana).length}</div>
+                  </>
+                )}
+              </div>
+
+              <div style={{ padding: '24px' }}>
+                <h2 style={{ color: '#1a365d', marginTop: 0, fontSize: '1.6rem' }}>{detailCabana.nombre}</h2>
+                <p style={{ color: '#4a5568', fontSize: '1rem', lineHeight: '1.6' }}>{detailCabana.descripcion}</p>
+                <p style={{ color: '#2d3748' }}><strong>Capacidad:</strong> Hasta {detailCabana.capacidad} personas</p>
+                <p style={{ fontSize: '1.4rem', color: '#2e4d25', fontWeight: 'bold' }}>
+                  ₡{Number(detailCabana.precio_noche || 0).toLocaleString('es-CR')} <span style={{ fontSize: '0.9rem', color: '#718096', fontWeight: 'normal' }}>/ noche</span>
+                </p>
+
+                <button
+                  style={{ ...styles.btnPrimary, marginTop: '12px' }}
+                  onClick={() => {
+                    setDetailCabana(null);
+                    intentarReservar(detailCabana);
+                  }}
+                >
+                  Reservar Ahora
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal 2: Formulario de Reserva con Simulador de Pago */}
+        {selectedCabana && (
+          <div style={styles.modalOverlay} onClick={() => setSelectedCabana(null)}>
+            <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <h3 style={{ color: '#1a365d', marginTop: 0, fontSize: '1.3rem' }}>Reservar {selectedCabana.nombre}</h3>
+              <form onSubmit={handleSubmit}>
+                <label style={styles.label}>Nombre:</label>
+                <input type="text" name="nombre" required style={styles.input} value={formData.nombre} onChange={handleChange} />
+
+                <label style={styles.label}>Apellidos:</label>
+                <input type="text" name="apellidos" required style={styles.input} value={formData.apellidos} onChange={handleChange} />
+
+                <label style={styles.label}>Correo Electrónico:</label>
+                <input type="email" name="email" required style={styles.input} value={formData.email} onChange={handleChange} />
+
+                <label style={styles.label}>Teléfono:</label>
+                <input type="tel" name="telefono" required style={styles.input} value={formData.telefono} onChange={handleChange} />
+
+                {/* SECCIÓN DEL SIMULADOR DE PAGO */}
+                <label style={styles.label}>Método de Pago:</label>
+                <select 
+                  name="metodo_pago" 
+                  style={styles.input} 
+                  value={formData.metodo_pago} 
+                  onChange={handleChange}
+                >
+                  <option value="SINPE_MOVIL">SINPE Móvil</option>
+                  <option value="TARJETA">Tarjeta de Crédito / Débito (Simulador)</option>
+                </select>
+
+                {formData.metodo_pago === 'SINPE_MOVIL' ? (
+                  <div style={{ backgroundColor: '#f0fff4', border: '1px solid #c6f6d5', padding: '12px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem', color: '#22543d' }}>
+                    <p style={{ margin: '0 0 6px 0' }}>📲 Realiza tu SINPE Móvil al número: <strong>8888-8888</strong> (Finca Don Litos).</p>
+                    <label style={{ ...styles.label, marginBottom: '4px' }}>Número de comprobante o referencia:</label>
+                    <input 
+                      type="text" 
+                      name="comprobante_referencia" 
+                      required 
+                      placeholder="Ej. Comprobante #987654"
+                      style={{ ...styles.input, marginBottom: 0 }} 
+                      value={formData.comprobante_referencia} 
+                      onChange={handleChange} 
+                    />
+                  </div>
+                ) : (
+                  <div style={{ backgroundColor: '#ebf8ff', border: '1px solid #bee3f8', padding: '14px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem', color: '#2b6cb0' }}>
+                    <p style={{ margin: '0 0 10px 0', fontWeight: '600' }}>💳 Simulador de Pasarela de Pagos Segura</p>
+                    
+                    <label style={{ ...styles.label, marginBottom: '4px' }}>Número de Tarjeta:</label>
+                    <input 
+                      type="text" 
+                      name="comprobante_referencia" 
+                      required 
+                      maxLength="19"
+                      placeholder="1234 5678 9101 1121"
+                      style={styles.input} 
+                      value={formData.comprobante_referencia} 
+                      onChange={handleChange} 
+                    />
+
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ ...styles.label, marginBottom: '4px' }}>Vencimiento:</label>
+                        <input 
+                          type="text" 
+                          name="tarjeta_vencimiento" 
+                          required 
+                          maxLength="5"
+                          placeholder="MM/AA"
+                          style={{ ...styles.input, marginBottom: 0 }} 
+                          value={formData.tarjeta_vencimiento} 
+                          onChange={handleChange} 
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ ...styles.label, marginBottom: '4px' }}>CVV / CVC:</label>
+                        <input 
+                          type="password" 
+                          name="tarjeta_cvv" 
+                          required 
+                          maxLength="4"
+                          placeholder="123"
+                          style={{ ...styles.input, marginBottom: 0 }} 
+                          value={formData.tarjeta_cvv} 
+                          onChange={handleChange} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* FIN DE SECCIÓN DE PAGO */}
+
+                <label style={styles.label}>Selecciona tu rango de hospedaje:</label>
+                <div style={{ marginBottom: '10px', textAlign: 'center' }}>
+                  <DatePicker selectsRange startDate={fechaCheckin} endDate={fechaCheckout} onChange={handleFechaChange} inline minDate={new Date()} excludeDates={fechasOcupadas} dayClassName={getDayClassName} />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '14px' }}>
+                  <div style={{ flex: 1, padding: '8px', borderRadius: '8px', backgroundColor: fechaCheckin ? '#e6f4ea' : '#f8f9fa', border: fechaCheckin ? '1px solid #2e4d25' : '1px solid #e2e8f0', textAlign: 'center', fontSize: '0.85rem' }}>
+                    <small style={{ color: '#718096', display: 'block' }}>Check-in</small>
+                    <strong style={{ color: '#2e4d25' }}>{fechaCheckin ? fechaCheckin.toLocaleDateString('es-CR') : 'Seleccionar'}</strong>
+                  </div>
+
+                  <div style={{ flex: 1, padding: '8px', borderRadius: '8px', backgroundColor: fechaCheckout ? '#e6f4ea' : '#f8f9fa', border: fechaCheckout ? '1px solid #2e4d25' : '1px solid #e2e8f0', textAlign: 'center', fontSize: '0.85rem' }}>
+                    <small style={{ color: '#718096', display: 'block' }}>Check-out</small>
+                    <strong style={{ color: '#2e4d25' }}>{fechaCheckout ? fechaCheckout.toLocaleDateString('es-CR') : 'Seleccionar'}</strong>
+                  </div>
+                </div>
+
+                {errorFecha && <p style={{ color: '#dc3545', fontWeight: 'bold', fontSize: '0.88rem', margin: '0 0 10px 0' }}>⚠️ {errorFecha}</p>}
+
+                {calcularTotal() > 0 && (
+                  <div style={styles.totalBox}>
+                    <strong>Total a pagar: </strong>₡{calcularTotal().toLocaleString('es-CR')}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                  <button type="submit" style={styles.btnPrimary}>Confirmar Reserva</button>
+                  <button type="button" style={styles.btnSecondary} onClick={() => setSelectedCabana(null)}>Cancelar</button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>
 
-      <header style={styles.header}>
-        <span style={styles.headerBadge}> </span>
-        <h1 style={styles.title}>Finca Don Litos</h1>
-        <div style={styles.subtitleWrapper}>
-          <span style={styles.subtitleTag}> Piscina común</span>
-          <span style={styles.subtitleDot}>•</span>
-          <span style={styles.subtitleTag}> Parqueo privado</span>
-          <span style={styles.subtitleDot}>•</span>
-          <span style={styles.subtitleTag}> Pet Friendly</span>
-        </div>
-      </header>
-
-      {mensaje && <div style={styles.alertSuccess}>{mensaje}</div>}
-
-      {/* CARRUSEL DE PUERTO VIEJO, LIMÓN */}
-      {imagenesPuertoViejo && imagenesPuertoViejo.length > 0 && (
-        <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto 40px auto', position: 'relative', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
-          <div style={{ width: '100%', height: '320px', position: 'relative', backgroundColor: '#1a202c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img 
-              src={imagenesPuertoViejo[currentSlide]?.url} 
-              alt="Puerto Viejo Limón" 
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)', padding: '20px', color: 'white' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>
-                🌴 Descubre Puerto Viejo, Limón
-              </h3>
-              <p style={{ margin: '5px 0 0 0', fontSize: '14px', textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
-                {imagenesPuertoViejo[currentSlide]?.titulo}
-              </p>
-            </div>
-          </div>
-
-          <button 
-            type="button"
-            onClick={anteriorSlide}
-            style={{ position: 'absolute', top: '50%', left: '15px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}
-          >
-            ❮
-          </button>
-
-          <button 
-            type="button"
-            onClick={siguienteSlide}
-            style={{ position: 'absolute', top: '50%', right: '15px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}
-          >
-            ❯
-          </button>
-
-          <div style={{ position: 'absolute', bottom: '10px', right: '20px', display: 'flex', gap: '6px' }}>
-            {imagenesPuertoViejo.map((_, index) => (
-              <span 
-                key={index} 
-                onClick={() => setCurrentSlide(index)}
-                style={{ width: '10px', height: '10px', borderRadius: '50%', background: currentSlide === index ? '#ffffff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', display: 'inline-block' }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={styles.grid}>
-        {cabanas.map((cabana) => {
-          const images = getImages(cabana);
-          return (
-            <div key={cabana.id_bungalow} style={styles.card} onClick={() => handleOpenDetail(cabana)}>
-              <div style={styles.imageContainer}>
-                <img src={images[0]} alt={cabana.nombre} style={styles.cardImage} />
-              </div>
-              <div style={styles.cardBody}>
-                <h3 style={styles.cardTitle}>{cabana.nombre}</h3>
-                <p style={styles.cardDesc}>{cabana.descripcion}</p>
-                
-                <div style={styles.capacityBadge}>
-                  👥 Hasta <strong>{cabana.capacidad} personas</strong>
-                </div>
-
-                <div style={styles.priceContainer}>
-                  <span style={styles.priceAmount}>₡{Number(cabana.precio_noche || 0).toLocaleString('es-CR')}</span>
-                  <span style={styles.priceUnit}> / noche</span>
-                </div>
-
-                <button
-                  style={styles.btnPrimary}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    intentarReservar(cabana);
-                  }}
-                >
-                  Reservar Cabaña
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* MODAL AVISO VISITANTE */}
-      {mostrarModalAvisoLogin && (
-        <div style={styles.modalOverlay} onClick={() => setMostrarModalAvisoLogin(false)}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginTop: 0, color: '#2e4d25', textAlign: 'center' }}>🔒 Inicia Sesión para Reservar</h3>
-            <p style={{ fontSize: '0.95rem', color: '#4a5568', textAlign: 'center', lineHeight: '1.5', marginBottom: '20px' }}>
-              Estás navegando como <strong>Visitante</strong>. Para poder realizar una reserva en Finca Don Litos, necesitas iniciar sesión en tu cuenta o registrarte.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button onClick={() => navigate('/login')} style={styles.btnPrimary}>
-                🔑 Ir a Iniciar Sesión / Registrarme
-              </button>
-              <button type="button" onClick={() => setMostrarModalAvisoLogin(false)} style={styles.btnSecondary}>
-                Seguir viendo cabañas
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal 1: Detalle y Carrusel */}
-      {detailCabana && (
-        <div style={styles.modalOverlay} onClick={() => setDetailCabana(null)}>
-          <div style={styles.detailModalContent} onClick={(e) => e.stopPropagation()}>
-            <button style={styles.closeBtn} onClick={() => setDetailCabana(null)}>✕</button>
-
-            <div style={styles.carouselContainer}>
-              <img src={getImages(detailCabana)[currentImageIndex]} alt={detailCabana.nombre} style={styles.carouselImage} />
-              {getImages(detailCabana).length > 1 && (
-                <>
-                  <button style={{ ...styles.carouselBtn, left: '10px' }} onClick={prevImage}>❮</button>
-                  <button style={{ ...styles.carouselBtn, right: '10px' }} onClick={nextImage}>❯</button>
-                  <div style={styles.imageCounter}>{currentImageIndex + 1} / {getImages(detailCabana).length}</div>
-                </>
-              )}
-            </div>
-
-            <div style={{ padding: '24px' }}>
-              <h2 style={{ color: '#1a365d', marginTop: 0, fontSize: '1.6rem' }}>{detailCabana.nombre}</h2>
-              <p style={{ color: '#4a5568', fontSize: '1rem', lineHeight: '1.6' }}>{detailCabana.descripcion}</p>
-              <p style={{ color: '#2d3748' }}><strong>Capacidad:</strong> Hasta {detailCabana.capacidad} personas</p>
-              <p style={{ fontSize: '1.4rem', color: '#2e4d25', fontWeight: 'bold' }}>
-                ₡{Number(detailCabana.precio_noche || 0).toLocaleString('es-CR')} <span style={{ fontSize: '0.9rem', color: '#718096', fontWeight: 'normal' }}>/ noche</span>
-              </p>
-
-              <button
-                style={{ ...styles.btnPrimary, marginTop: '12px' }}
-                onClick={() => {
-                  setDetailCabana(null);
-                  intentarReservar(detailCabana);
-                }}
-              >
-                Reservar Ahora
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal 2: Formulario de Reserva con Simulador de Pago */}
-      {selectedCabana && (
-        <div style={styles.modalOverlay} onClick={() => setSelectedCabana(null)}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ color: '#1a365d', marginTop: 0, fontSize: '1.3rem' }}>Reservar {selectedCabana.nombre}</h3>
-            <form onSubmit={handleSubmit}>
-              <label style={styles.label}>Nombre:</label>
-              <input type="text" name="nombre" required style={styles.input} value={formData.nombre} onChange={handleChange} />
-
-              <label style={styles.label}>Apellidos:</label>
-              <input type="text" name="apellidos" required style={styles.input} value={formData.apellidos} onChange={handleChange} />
-
-              <label style={styles.label}>Correo Electrónico:</label>
-              <input type="email" name="email" required style={styles.input} value={formData.email} onChange={handleChange} />
-
-              <label style={styles.label}>Teléfono:</label>
-              <input type="tel" name="telefono" required style={styles.input} value={formData.telefono} onChange={handleChange} />
-
-              {/* SECCIÓN DEL SIMULADOR DE PAGO */}
-              <label style={styles.label}>Método de Pago:</label>
-              <select 
-                name="metodo_pago" 
-                style={styles.input} 
-                value={formData.metodo_pago} 
-                onChange={handleChange}
-              >
-                <option value="SINPE_MOVIL">SINPE Móvil</option>
-                <option value="TARJETA">Tarjeta de Crédito / Débito (Simulador)</option>
-              </select>
-
-              {formData.metodo_pago === 'SINPE_MOVIL' ? (
-                <div style={{ backgroundColor: '#f0fff4', border: '1px solid #c6f6d5', padding: '12px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem', color: '#22543d' }}>
-                  <p style={{ margin: '0 0 6px 0' }}>📲 Realiza tu SINPE Móvil al número: <strong>8888-8888</strong> (Finca Don Litos).</p>
-                  <label style={{ ...styles.label, marginBottom: '4px' }}>Número de comprobante o referencia:</label>
-                  <input 
-                    type="text" 
-                    name="comprobante_referencia" 
-                    required 
-                    placeholder="Ej. Comprobante #987654"
-                    style={{ ...styles.input, marginBottom: 0 }} 
-                    value={formData.comprobante_referencia} 
-                    onChange={handleChange} 
-                  />
-                </div>
-              ) : (
-                <div style={{ backgroundColor: '#ebf8ff', border: '1px solid #bee3f8', padding: '14px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem', color: '#2b6cb0' }}>
-                  <p style={{ margin: '0 0 10px 0', fontWeight: '600' }}>💳 Simulador de Pasarela de Pagos Segura</p>
-                  
-                  <label style={{ ...styles.label, marginBottom: '4px' }}>Número de Tarjeta:</label>
-                  <input 
-                    type="text" 
-                    name="comprobante_referencia" 
-                    required 
-                    maxLength="19"
-                    placeholder="1234 5678 9101 1121"
-                    style={styles.input} 
-                    value={formData.comprobante_referencia} 
-                    onChange={handleChange} 
-                  />
-
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ ...styles.label, marginBottom: '4px' }}>Vencimiento:</label>
-                      <input 
-                        type="text" 
-                        name="tarjeta_vencimiento" 
-                        required 
-                        maxLength="5"
-                        placeholder="MM/AA"
-                        style={{ ...styles.input, marginBottom: 0 }} 
-                        value={formData.tarjeta_vencimiento} 
-                        onChange={handleChange} 
-                      />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ ...styles.label, marginBottom: '4px' }}>CVV / CVC:</label>
-                      <input 
-                        type="password" 
-                        name="tarjeta_cvv" 
-                        required 
-                        maxLength="4"
-                        placeholder="123"
-                        style={{ ...styles.input, marginBottom: 0 }} 
-                        value={formData.tarjeta_cvv} 
-                        onChange={handleChange} 
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-              {/* FIN DE SECCIÓN DE PAGO */}
-
-              <label style={styles.label}>Selecciona tu rango de hospedaje:</label>
-              <div style={{ marginBottom: '10px', textAlign: 'center' }}>
-                <DatePicker selectsRange startDate={fechaCheckin} endDate={fechaCheckout} onChange={handleFechaChange} inline minDate={new Date()} excludeDates={fechasOcupadas} dayClassName={getDayClassName} />
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '14px' }}>
-                <div style={{ flex: 1, padding: '8px', borderRadius: '8px', backgroundColor: fechaCheckin ? '#e6f4ea' : '#f8f9fa', border: fechaCheckin ? '1px solid #2e4d25' : '1px solid #e2e8f0', textAlign: 'center', fontSize: '0.85rem' }}>
-                  <small style={{ color: '#718096', display: 'block' }}>Check-in</small>
-                  <strong style={{ color: '#2e4d25' }}>{fechaCheckin ? fechaCheckin.toLocaleDateString('es-CR') : 'Seleccionar'}</strong>
-                </div>
-
-                <div style={{ flex: 1, padding: '8px', borderRadius: '8px', backgroundColor: fechaCheckout ? '#e6f4ea' : '#f8f9fa', border: fechaCheckout ? '1px solid #2e4d25' : '1px solid #e2e8f0', textAlign: 'center', fontSize: '0.85rem' }}>
-                  <small style={{ color: '#718096', display: 'block' }}>Check-out</small>
-                  <strong style={{ color: '#2e4d25' }}>{fechaCheckout ? fechaCheckout.toLocaleDateString('es-CR') : 'Seleccionar'}</strong>
-                </div>
-              </div>
-
-              {errorFecha && <p style={{ color: '#dc3545', fontWeight: 'bold', fontSize: '0.88rem', margin: '0 0 10px 0' }}>⚠️ {errorFecha}</p>}
-
-              {calcularTotal() > 0 && (
-                <div style={styles.totalBox}>
-                  <strong>Total a pagar: </strong>₡{calcularTotal().toLocaleString('es-CR')}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-                <button type="submit" style={styles.btnPrimary}>Confirmar Reserva</button>
-                <button type="button" style={styles.btnSecondary} onClick={() => setSelectedCabana(null)}>Cancelar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+      {/* 2. Pie de página al final de todo */}
+      <Footer />
+    </>
   );
 };
 

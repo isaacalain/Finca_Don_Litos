@@ -4,6 +4,7 @@ import Login from './Login';
 import { Cabanas } from './Cabanas';
 import Admin from './Admin';
 import ResetPassword from './ResetPassword';
+
 function App() {
   const [autenticado, setAutenticado] = useState(
     () => localStorage.getItem('adminAutenticado') === 'true'

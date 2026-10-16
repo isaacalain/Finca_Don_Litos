@@ -633,15 +633,12 @@ app.put('/api/admin/reservas/:id/estado', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Estado no válido.' });
   }
 
-  // 1. Actualizar el estado en la tabla 'reservas'
-  const sqlReserva = 'UPDATE finca_don_litos.reservas SET estado = ? WHERE id_reserva = ?';
-  
-  db.query(sqlReserva, [estado, id], (err, result) => {
-    if (err) {
-      return res.status(500).json({ success: false, error: 'Error al actualizar el estado de la reserva.' });
-    }
+  try {
+    // 1. Actualizar el estado en la tabla 'reservas'
+    const sqlReserva = 'UPDATE finca_don_litos.reservas SET estado = ? WHERE id_reserva = ?';
+    const [resultReserva] = await pool.query(sqlReserva, [estado, id]);
 
-    if (result.affectedRows === 0) {
+    if (resultReserva.affectedRows === 0) {
       return res.status(404).json({ success: false, error: 'Reserva no encontrada.' });
     }
 
@@ -651,14 +648,72 @@ app.put('/api/admin/reservas/:id/estado', async (req, res) => {
     if (estado === 'cancelada') estadoPagoSync = 'rechazado';
 
     const sqlPagoSync = 'UPDATE finca_don_litos.pagos SET estado_pago = ? WHERE id_reserva = ?';
-    db.query(sqlPagoSync, [estadoPagoSync, id], (errPago) => {
-      if (errPago) {
-        console.error('⚠️ Advertencia: No se pudo sincronizar el estado del pago:', errPago);
-      }
+    await pool.query(sqlPagoSync, [estadoPagoSync, id]);
 
-      res.json({ success: true, mensaje: `Reserva actualizada a '${estado}' y pago sincronizado exitosamente.` });
-    });
+    res.json({ success: true, mensaje: `Reserva actualizada a '${estado}' y pago sincronizado exitosamente.` });
+  } catch (err) {
+    console.error('❌ Error al actualizar el estado de la reserva:', err);
+    res.status(500).json({ success: false, error: 'Error en el servidor al actualizar el estado.' });
+  }
+});
+
+// Ruta para actualizar o registrar el comprobante de pago desde el panel de administración
+app.put('/api/admin/pagos/comprobante', (req, res) => {
+  const { id_reserva, comprobante } = req.body;
+  
+  if (!id_reserva || !comprobante) {
+    return res.status(400).json({ success: false, error: 'Faltan datos obligatorios.' });
+  }
+
+  // 1. Verificamos si ya existe un registro de pago para esta reserva
+  db.query('SELECT id_pago FROM finca_don_litos.pagos WHERE id_reserva = ?', [id_reserva], (err, pagosExistentes) => {
+    if (err) {
+      console.error('❌ Error al buscar el pago:', err);
+      return res.status(500).json({ success: false, error: 'Error en el servidor al buscar el pago.' });
+    }
+
+    if (pagosExistentes.length > 0) {
+      // Si ya existe, lo actualizamos usando parámetros seguros (?)
+      db.query(
+        'UPDATE finca_don_litos.pagos SET comprobante_url = ?, estado_pago = ? WHERE id_reserva = ?',
+        [comprobante.trim(), 'aprobado', id_reserva],
+        (errUpdate) => {
+          if (errUpdate) {
+            console.error('❌ Error al actualizar el pago:', errUpdate);
+            return res.status(500).json({ success: false, error: 'Error al actualizar el comprobante.' });
+          }
+          actualizarReservaYResponder();
+        }
+      );
+    } else {
+      // Si no existe, creamos el registro de pago automáticamente con parámetros seguros (?)
+      db.query(
+        'INSERT INTO finca_don_litos.pagos (id_reserva, metodo_pago, comprobante_url, estado_pago, fecha_pago) VALUES (?, ?, ?, ?, NOW())',
+        [id_reserva, 'SINPE_MOVIL', comprobante.trim(), 'aprobado'],
+        (errInsert) => {
+          if (errInsert) {
+            console.error('❌ Error al insertar el pago:', errInsert);
+            return res.status(500).json({ success: false, error: 'Error al registrar el comprobante.' });
+          }
+          actualizarReservaYResponder();
+        }
+      );
+    }
   });
+
+  // Función auxiliar para actualizar la reserva a 'pagada' y enviar la respuesta final
+  function actualizarReservaYResponder() {
+    db.query(
+      'UPDATE finca_don_litos.reservas SET estado = ? WHERE id_reserva = ?',
+      ['pagada', id_reserva],
+      (errReserva) => {
+        if (errReserva) {
+          console.error('❌ Error al actualizar el estado de la reserva:', errReserva);
+        }
+        res.json({ success: true, message: 'Comprobante registrado y pago aprobado correctamente.' });
+      }
+    );
+  }
 });
 
 // ==========================================
