@@ -462,7 +462,7 @@ app.get('/api/cabanas', (req, res) => {
 });
 
 // ==========================================
-// 8. OBTENER FECHAS OCUPADAS
+// OBTENER FECHAS OCUPADAS POR BUNGALOW
 // ==========================================
 app.get('/api/reservas/ocupadas/:id', (req, res) => {
   const { id } = req.params;
@@ -476,6 +476,7 @@ app.get('/api/reservas/ocupadas/:id', (req, res) => {
 
   db.query(sql, [id], (err, results) => {
     if (err) {
+      console.error('Error al obtener fechas ocupadas:', err);
       return res.status(500).json({ error: 'Error al obtener fechas ocupadas.' });
     }
     res.json(results);

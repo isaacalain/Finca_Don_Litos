@@ -119,32 +119,37 @@ export const Cabanas = ({ setAutenticado }) => {
   }, [usuarioLogueado]);
 
   useEffect(() => {
-    if (!selectedCabana) {
-      setFechasOcupadas([]);
-      setFechasSeleccionadas([null, null]);
-      setErrorFecha('');
-      return;
-    }
+    if (!selectedCabana) return;
 
     const obtenerFechasOcupadas = async () => {
       try {
         const response = await fetch(`http://localhost:5000/api/reservas/ocupadas/${selectedCabana.id_bungalow}`);
         const data = await response.json();
+        
+        // <-- ¡AQUÍ: Mira qué trae el servidor en la consola!
+        console.log("Fechas crudas desde la BD:", data);
 
         let diasBloqueados = [];
-        data.forEach((reserva) => {
-          if (!reserva.fecha_checkin || !reserva.fecha_checkout) return;
 
-          const [aIn, mIn, dIn] = reserva.fecha_checkin.split('-').map(Number);
-          const [aOut, mOut, dOut] = reserva.fecha_checkout.split('-').map(Number);
+        if (Array.isArray(data)) {
+          data.forEach((reserva) => {
+            if (!reserva.fecha_checkin || !reserva.fecha_checkout) return;
 
-          const inicio = new Date(aIn, mIn - 1, dIn, 0, 0, 0);
-          const fin = new Date(aOut, mOut - 1, dOut, 0, 0, 0);
+            const [aIn, mIn, dIn] = reserva.fecha_checkin.split('-').map(Number);
+            const [aOut, mOut, dOut] = reserva.fecha_checkout.split('-').map(Number);
 
-          const diasEnRango = eachDayOfInterval({ start: inicio, end: fin });
-          diasBloqueados = [...diasBloqueados, ...diasEnRango];
-        });
+            let actual = new Date(aIn, mIn - 1, dIn, 0, 0, 0);
+            const fin = new Date(aOut, mOut - 1, dOut, 0, 0, 0);
 
+            while (actual < fin) {
+              diasBloqueados.push(new Date(actual));
+              actual.setDate(actual.getDate() + 1);
+            }
+          });
+        }
+
+        // <-- ¡AQUÍ: Mira cuántos días bloqueados calculó!
+        console.log("Días bloqueados calculados:", diasBloqueados);
         setFechasOcupadas(diasBloqueados);
       } catch (err) {
         console.error('Error al consultar fechas ocupadas:', err);
@@ -153,14 +158,6 @@ export const Cabanas = ({ setAutenticado }) => {
 
     obtenerFechasOcupadas();
   }, [selectedCabana]);
-
-  const intentarReservar = (cabana) => {
-    if (!usuarioLogueado || usuarioLogueado.rol === 'visitante' || !usuarioLogueado.nombre) {
-      setMostrarModalAvisoLogin(true);
-      return;
-    }
-    setSelectedCabana(cabana);
-  };
 
   const abrirModalPerfil = () => {
     setEditNombre(usuarioLogueado.nombre || '');
@@ -342,6 +339,14 @@ export const Cabanas = ({ setAutenticado }) => {
       console.error('Error al enviar la reserva:', error);
       alert('Ocurrió un error al conectar con el servidor.');
     }
+  };
+  // Función para manejar el clic en el botón de reservar
+  const intentarReservar = (cabana) => {
+    if (!usuarioLogueado || usuarioLogueado.rol === 'visitante' || !usuarioLogueado.nombre) {
+      setMostrarModalAvisoLogin(true);
+      return;
+    }
+    setSelectedCabana(cabana);
   };
 
   return (

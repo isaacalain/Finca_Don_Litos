@@ -17,11 +17,29 @@ export default function Admin({ setAutenticado }) {
   const [modalPagoDetalle, setModalPagoDetalle] = useState(null);
   const [nuevoComprobanteAdmin, setNuevoComprobanteAdmin] = useState('');
   const [guardandoComprobante, setGuardandoComprobante] = useState(false);
+  
   // Datos del Usuario Administrador Logueado
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
     return JSON.parse(localStorage.getItem('adminUsuario') || '{}');
   });
-  
+
+  useEffect(() => {
+    const usuarioGuardado = JSON.parse(localStorage.getItem('adminUsuario'));
+    console.log("Usuario actual:", usuarioGuardado);
+
+    if (!usuarioGuardado) {
+      navigate('/login');
+      return;
+    }
+
+    const rolUsuario = (usuarioGuardado.rol || usuarioGuardado.tipo || usuarioGuardado.role || '').toLowerCase();
+
+    if (rolUsuario !== 'admin' && rolUsuario !== 'administrador') {
+      alert('Acceso denegado: No tienes permisos de administrador.');
+      navigate('/');
+    }
+  }, [navigate]);
+
   // Estado para abrir/cerrar el menú desplegable del perfil
   const [menuPerfilAbierto, setMenuPerfilAbierto] = useState(false);
   const menuRef = useRef(null);
@@ -55,9 +73,9 @@ export default function Admin({ setAutenticado }) {
   const [mensajeUserError, setMensajeUserError] = useState('');
 
   // ==========================================
-  // ESTADOS PARA ACCIONES SEGURAS DE USUARIO (Cambiar Estado / Eliminar con Pass)
+  // ESTADOS PARA ACCIONES SEGURAS DE USUARIO
   // ==========================================
-  const [modalAccionUsuario, setModalAccionUsuario] = useState(false); // 'estado' o 'eliminar'
+  const [modalAccionUsuario, setModalAccionUsuario] = useState(false);
   const [usuarioObjetivo, setUsuarioObjetivo] = useState(null);
   const [nuevoEstadoObjetivo, setNuevoEstadoObjetivo] = useState('');
   const [passwordAdminAccion, setPasswordAdminAccion] = useState('');
@@ -143,33 +161,45 @@ export default function Admin({ setAutenticado }) {
       return;
     }
 
-    const obtenerFechasOcupadasAdminModal = async () => {
-      try {
-        const response = await fetch(`http://localhost:5000/api/reservas/ocupadas/${reservaCabanaId}`);
-        const data = await response.json();
+    fetch(`http://localhost:5000/api/reservas/ocupadas/${reservaCabanaId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const fechasDeshabilitadas = [];
 
-        let diasBloqueados = [];
         data.forEach((reserva) => {
-          if (!reserva.fecha_checkin || !reserva.fecha_checkout) return;
+          const [yIn, mIn, dIn] = reserva.fecha_checkin.split('-').map(Number);
+          const [yOut, mOut, dOut] = reserva.fecha_checkout.split('-').map(Number);
 
-          const [aIn, mIn, dIn] = reserva.fecha_checkin.split('-').map(Number);
-          const [aOut, mOut, dOut] = reserva.fecha_checkout.split('-').map(Number);
+          let actual = new Date(yIn, mIn - 1, dIn);
+          const checkout = new Date(yOut, mOut - 1, dOut);
 
-          const inicio = new Date(aIn, mIn - 1, dIn, 0, 0, 0);
-          const fin = new Date(aOut, mOut - 1, dOut, 0, 0, 0);
-
-          const diasEnRango = eachDayOfInterval({ start: inicio, end: fin });
-          diasBloqueados = [...diasBloqueados, ...diasEnRango];
+          while (actual < checkout) {
+            fechasDeshabilitadas.push(new Date(actual));
+            actual.setDate(actual.getDate() + 1);
+          }
         });
 
-        setReservaFechasOcupadas(diasBloqueados);
-      } catch (err) {
-        console.error('Error al consultar fechas ocupadas para nueva reserva:', err);
-      }
-    };
-
-    obtenerFechasOcupadasAdminModal();
+        setReservaFechasOcupadas(fechasDeshabilitadas);
+      })
+      .catch((err) => console.error('Error al cargar fechas ocupadas en Admin:', err));
   }, [reservaCabanaId]);
+
+  // Función para pintar los días ocupados de rojo en el calendario del admin
+  const getModalDayClassName = (date) => {
+    if (isBefore(date, startOfDay(new Date()))) {
+      return 'dia-pasado';
+    }
+    const ocupado = reservaFechasOcupadas.some(
+      (d) =>
+        d.getFullYear() === date.getFullYear() &&
+        d.getMonth() === date.getMonth() &&
+        d.getDate() === date.getDate()
+    );
+    if (ocupado) {
+      return 'dia-ocupado';
+    }
+    return 'dia-disponible';
+  };
 
   // Manejar cambio en calendario del modal de reserva admin
   const handleReservaFechaChange = (update) => {
@@ -201,7 +231,6 @@ export default function Admin({ setAutenticado }) {
     return dias > 0 ? dias * Number(cabanaSeleccionada.precio_noche) : 0;
   };
 
-  // Abrir modal de nueva reserva
   const abrirModalCrearReserva = () => {
     setFormReservaData({ nombre: '', apellidos: '', email: '', telefono: '' });
     setReservaFechasSeleccionadas([null, null]);
@@ -293,7 +322,6 @@ export default function Admin({ setAutenticado }) {
     }
   };
 
-  // 2. Abrir Modal de Perfil con datos precargados
   const abrirModalPerfil = () => {
     setEditNombre(usuarioLogueado.nombre || '');
     setEditApellido(usuarioLogueado.apellidos || '');
@@ -305,7 +333,6 @@ export default function Admin({ setAutenticado }) {
     setMostrarModalPerfil(true);
   };
 
-  // 3. Guardar Cambios de Perfil
   const handleGuardarPerfil = async (e) => {
     e.preventDefault();
 
@@ -350,9 +377,6 @@ export default function Admin({ setAutenticado }) {
     }
   };
 
-  // ==========================================
-  // ACCIONES SEGURAS DE GESTIÓN DE USUARIOS
-  // ==========================================
   const prepararCambioEstado = (usuario, estadoActual) => {
     const estadoDestino = estadoActual === 'deshabilitada' ? 'activa' : 'deshabilitada';
     setUsuarioObjetivo(usuario);
@@ -424,7 +448,6 @@ export default function Admin({ setAutenticado }) {
     }
   };
 
-  // 4. Cambiar estado de reserva ('pagada' / 'reservada')
   const cambiarEstadoReserva = async (id, nuevoEstado) => {
     try {
       const response = await fetch(`http://localhost:5000/api/admin/reservas/${id}/estado`, {
@@ -450,7 +473,6 @@ export default function Admin({ setAutenticado }) {
     }
   };
 
-  // Guardar nuevo comprobante de pago
   const handleGuardarComprobanteAdmin = async (idReserva) => {
     if (!nuevoComprobanteAdmin.trim()) {
       alert('Por favor ingresa un número de comprobante o referencia válido.');
@@ -485,7 +507,6 @@ export default function Admin({ setAutenticado }) {
     }
   };
 
-  // 5. Cancelar reserva
   const handleCancelar = async (id) => {
     if (!window.confirm('¿Estás seguro de cancelar esta reserva?')) return;
 
@@ -510,7 +531,6 @@ export default function Admin({ setAutenticado }) {
     }
   };
 
-  // 6. Abrir modal de seguridad para crear usuario
   const prepararCrearUsuario = (e) => {
     e.preventDefault();
 
@@ -534,7 +554,6 @@ export default function Admin({ setAutenticado }) {
     setMostrarModalAuth(true);
   };
 
-  // 7. Enviar creación de usuario a la API con la confirmación de la contraseña de admin
   const confirmarYCrearUsuario = async (e) => {
     e.preventDefault();
 
@@ -586,7 +605,6 @@ export default function Admin({ setAutenticado }) {
     }
   };
 
-  // 9. Cerrar sesión
   const cerrarSesion = () => {
     localStorage.removeItem('adminAutenticado');
     localStorage.removeItem('adminUsuario');
@@ -594,14 +612,12 @@ export default function Admin({ setAutenticado }) {
     navigate('/login', { replace: true });
   };
 
-  // Iniciales para el Avatar
   const obtenerIniciales = () => {
     const nombre = usuarioLogueado.nombre || 'Admin';
     const apellido = usuarioLogueado.apellidos || '';
     return (nombre.charAt(0) + (apellido ? apellido.charAt(0) : '')).toUpperCase();
   };
 
-  // Estilos de badge de estado de reserva
   const obtenerEstiloEstado = (estado) => {
     switch (estado) {
       case 'pagada':
@@ -614,7 +630,6 @@ export default function Admin({ setAutenticado }) {
     }
   };
 
-  // Días ocupados para el calendario admin principal
   const obtenerFechasOcupadasDetalle = () => {
     let resultado = [];
     const cabanaSeleccionada = cabanas.find((c) => c.id_bungalow === Number(selectedCabanaId));
@@ -660,24 +675,6 @@ export default function Admin({ setAutenticado }) {
     return 'dia-admin-disponible';
   };
 
-  // Clases CSS para el calendario dentro del modal de crear reserva admin
-  const getModalDayClassName = (date) => {
-    if (isBefore(date, startOfDay(new Date()))) {
-      return 'dia-pasado';
-    }
-    const ocupado = reservaFechasOcupadas.some(
-      (d) =>
-        d.getFullYear() === date.getFullYear() &&
-        d.getMonth() === date.getMonth() &&
-        d.getDate() === date.getDate()
-    );
-    if (ocupado) {
-      return 'dia-ocupado';
-    }
-    return 'dia-disponible';
-  };
-
-  // Reservas del día seleccionado
   const reservasDelDiaSeleccionado = () => {
     if (!fechaSeleccionadaAdmin) return [];
 
@@ -707,7 +704,6 @@ export default function Admin({ setAutenticado }) {
 
   const reservasDelDia = reservasDelDiaSeleccionado();
 
-  // Filtrado de la lista de reservas
   const reservasFiltradas = reservas.filter((reserva) => {
     const texto = busquedaTexto.toLowerCase().trim();
     const coincideTexto =
@@ -1158,7 +1154,6 @@ export default function Admin({ setAutenticado }) {
                             <td style={{ padding: '12px 8px', whiteSpace: 'nowrap' }}>{r.fecha_checkin} <br /> al {r.fecha_checkout}</td>
                             <td style={{ padding: '12px 8px', whiteSpace: 'nowrap' }}>₡{Number(r.total || 0).toLocaleString('es-CR')}</td>
 
-                            {/* BOTÓN DESPLEGABLE DE PAGO */}
                             <td style={{ padding: '12px 8px' }}>
                               <button
                                 type="button"
@@ -1192,7 +1187,6 @@ export default function Admin({ setAutenticado }) {
                               </button>
                             </td>
 
-                            {/* ESTADO DEL PAGO */}
                             <td style={{ padding: '12px 8px' }}>
                               <span style={{
                                 padding: '4px 8px',
@@ -1207,14 +1201,12 @@ export default function Admin({ setAutenticado }) {
                               </span>
                             </td>
 
-                            {/* ESTADO DE LA RESERVA */}
                             <td style={{ padding: '12px 8px' }}>
                               <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', display: 'inline-block', ...obtenerEstiloEstado(r.estado) }}>
                                 {r.estado}
                               </span>
                             </td>
 
-                            {/* ACCIONES */}
                             <td style={{ padding: '12px 8px' }}>
                               <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
                                 {r.estado !== 'reservada' && (
@@ -1289,7 +1281,6 @@ export default function Admin({ setAutenticado }) {
                   <div style={{ backgroundColor: '#f7fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', margin: '10px 0' }}>
                     <strong style={{ color: '#2d3748' }}>Comprobante / Referencia:</strong>
                     
-                    {/* Si no hay comprobante o dice SIN-COMPROBANTE */}
                     {(!modalPagoDetalle.referencia || modalPagoDetalle.referencia === 'SIN-COMPROBANTE' || modalPagoDetalle.referencia === 'Sin comprobante registrado') ? (
                       <div style={{ marginTop: '8px' }}>
                         <span style={{ color: '#e53e3e', fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>
@@ -1654,6 +1645,7 @@ export default function Admin({ setAutenticado }) {
                     selectsRange
                     inline
                     minDate={new Date()}
+                    excludeDates={reservaFechasOcupadas}
                     dayClassName={getModalDayClassName}
                   />
                 </div>
