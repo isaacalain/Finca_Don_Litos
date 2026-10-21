@@ -239,7 +239,7 @@ export default function Login({ setAutenticado }) {
             }}
             style={styles.btnRegister}
           >
-            📝 Crear una Cuenta de Cliente
+            📝 Crear una Cuenta
           </button>
         </div>
       </div>

@@ -36,9 +36,11 @@ export const Cabanas = ({ setAutenticado }) => {
   const [guardandoPerfil, setGuardandoPerfil] = useState(false);
   const [errorPerfil, setErrorPerfil] = useState('');
 
+
+
   // Estado para el Carrusel de Puerto Viejo, Limón
   const [currentSlide, setCurrentSlide] = useState(0);
-  
+
   const imagenesPuertoViejo = [
     {
       url: '/puerto1.png',
@@ -125,7 +127,7 @@ export const Cabanas = ({ setAutenticado }) => {
       try {
         const response = await fetch(`http://localhost:5000/api/reservas/ocupadas/${selectedCabana.id_bungalow}`);
         const data = await response.json();
-        
+
         // <-- ¡AQUÍ: Mira qué trae el servidor en la consola!
         console.log("Fechas crudas desde la BD:", data);
 
@@ -160,16 +162,64 @@ export const Cabanas = ({ setAutenticado }) => {
   }, [selectedCabana]);
 
   const abrirModalPerfil = () => {
+    setMenuPerfilAbierto(false); // Cierra el menú desplegable flotante
+    setErrorPerfil('');
+
+    // Rellena los campos con los datos actuales del usuario
     setEditNombre(usuarioLogueado.nombre || '');
-    setEditApellido(usuarioLogueado.apellidos || '');
+    setEditApellido(usuarioLogueado.apellidos || usuarioLogueado.apellido || '');
     setEditCorreo(usuarioLogueado.correo || '');
     setEditPasswordActual('');
     setEditNuevaPassword('');
-    setErrorPerfil('');
-    setMenuPerfilAbierto(false);
-    setMostrarModalPerfil(true);
-  };
 
+    setMostrarModalPerfil(true); // Abre la ventana modal
+  };
+  const guardarPerfil = async (e) => {
+  e.preventDefault();
+  setGuardandoPerfil(true);
+  setErrorPerfil('');
+
+  try {
+    // Obtenemos el ID correcto del usuario logueado
+    const idUsuario = usuarioLogueado.id_usuario || usuarioLogueado.id || usuarioLogueado._id;
+
+    const response = await fetch('http://localhost:5000/api/perfil', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id_usuario: idUsuario,
+        nombre: editNombre,
+        apellidos: editApellido,
+        correo: editCorreo,
+        passwordActual: editPasswordActual,
+        nuevaPassword: editNuevaPassword
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Error al actualizar el perfil');
+    }
+
+    // Actualizamos los datos guardados localmente con lo que devuelve el backend
+    const usuarioActualizado = {
+      ...usuarioLogueado,
+      nombre: data.user.nombre,
+      apellidos: data.user.apellidos,
+      correo: data.user.correo
+    };
+
+    localStorage.setItem('adminUsuario', JSON.stringify(usuarioActualizado));
+    setUsuarioLogueado(usuarioActualizado);
+    setMostrarModalPerfil(false);
+    alert('¡Perfil actualizado con éxito!');
+  } catch (err) {
+    setErrorPerfil(err.message);
+  } finally {
+    setGuardandoPerfil(false);
+  }
+};
   const cerrarSesion = () => {
     localStorage.removeItem('adminAutenticado');
     localStorage.removeItem('adminUsuario');
@@ -190,15 +240,15 @@ export const Cabanas = ({ setAutenticado }) => {
     setCurrentImageIndex(0);
   };
 
- const getImages = (cabana) => {
+  const getImages = (cabana) => {
     if (!cabana || !cabana.nombre) {
       return ['/images/default.jpg'];
     }
 
     const nombreLower = cabana.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    let carpeta = 'tucan'; 
+    let carpeta = 'tucan';
 
-    
+
     if (nombreLower.includes('tucan')) {
       carpeta = 'tucan';
     } else if (nombreLower.includes('perezoso')) {
@@ -326,8 +376,8 @@ export const Cabanas = ({ setAutenticado }) => {
         setMensaje('¡Reserva creada exitosamente! Se ha enviado un correo de confirmación.');
         setSelectedCabana(null);
         setFechasSeleccionadas([null, null]);
-        setFormData((prev) => ({ 
-          ...prev, 
+        setFormData((prev) => ({
+          ...prev,
           comprobante_referencia: '',
           tarjeta_vencimiento: '',
           tarjeta_cvv: ''
@@ -350,6 +400,7 @@ export const Cabanas = ({ setAutenticado }) => {
   };
 
   return (
+
     <>
       {/* 1. Navbar con menú desplegable de 3 rayitas */}
       <Navbar />
@@ -368,12 +419,144 @@ export const Cabanas = ({ setAutenticado }) => {
           .react-datepicker__header { background-color: #2e4d25; }
           .react-datepicker__current-month, .react-datepicker__day-name { color: #ffffff !important; }
         `}</style>
+        {/* MODAL EDITAR PERFIL */}
+        {mostrarModalPerfil && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(15, 23, 42, 0.75)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 2000,
+              padding: '20px',
+              boxSizing: 'border-box'
+            }}
+            onClick={() => setMostrarModalPerfil(false)}
+          >
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '12px',
+                padding: '25px',
+                maxWidth: '450px',
+                width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)',
+                position: 'relative'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '20px' }}>
+                <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.2rem' }}>⚙️ Editar Mi Perfil</h3>
+                <button
+                  onClick={() => setMostrarModalPerfil(false)}
+                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontWeight: 'bold', color: '#64748b' }}
+                >
+                  ✕
+                </button>
+              </div>
 
+              {errorPerfil && (
+                <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '10px 12px', borderRadius: '8px', fontSize: '13px', marginBottom: '15px' }}>
+                  ⚠️ {errorPerfil}
+                </div>
+              )}
+
+              <form onSubmit={guardarPerfil}>
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px', color: '#334155' }}>Nombre:</label>
+                  <input
+                    type="text"
+                    value={editNombre}
+                    onChange={(e) => setEditNombre(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px', color: '#334155' }}>Apellidos:</label>
+                  <input
+                    type="text"
+                    value={editApellido}
+                    onChange={(e) => setEditApellido(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px', color: '#334155' }}>Correo Electrónico:</label>
+                  <input
+                    type="email"
+                    value={editCorreo}
+                    onChange={(e) => setEditCorreo(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '20px 0' }} />
+
+                <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', fontStyle: 'italic' }}>
+                  🔒 Rellena los siguientes campos solo si deseas cambiar tu contraseña:
+                </p>
+
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px', color: '#334155' }}>Contraseña Actual:</label>
+                  <input
+                    type="password"
+                    placeholder="Ingresa tu contraseña actual"
+                    value={editPasswordActual}
+                    onChange={(e) => setEditPasswordActual(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px', color: '#334155' }}>Nueva Contraseña:</label>
+                  <input
+                    type="password"
+                    placeholder="Nueva contraseña"
+                    value={editNuevaPassword}
+                    onChange={(e) => setEditNuevaPassword(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={guardandoPerfil}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    backgroundColor: guardandoPerfil ? '#94a3b8' : '#1a2332',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 'bold',
+                    cursor: guardandoPerfil ? 'not-allowed' : 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  {guardandoPerfil ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
         {/* Menú Superior de Usuario */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
           {usuarioLogueado && usuarioLogueado.rol !== 'visitante' && usuarioLogueado.nombre ? (
             <div ref={menuRef} style={{ position: 'relative' }}>
-              <div 
+              <div
                 onClick={() => setMenuPerfilAbierto(!menuPerfilAbierto)}
                 style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', backgroundColor: '#2e4d25', color: 'white', padding: '6px 14px 6px 8px', borderRadius: '25px', boxShadow: '0 2px 5px rgba(0,0,0,0.15)' }}
               >
@@ -429,9 +612,9 @@ export const Cabanas = ({ setAutenticado }) => {
         {imagenesPuertoViejo && imagenesPuertoViejo.length > 0 && (
           <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto 40px auto', position: 'relative', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
             <div style={{ width: '100%', height: '320px', position: 'relative', backgroundColor: '#1a202c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img 
-                src={imagenesPuertoViejo[currentSlide]?.url} 
-                alt="Puerto Viejo Limón" 
+              <img
+                src={imagenesPuertoViejo[currentSlide]?.url}
+                alt="Puerto Viejo Limón"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)', padding: '20px', color: 'white' }}>
@@ -444,7 +627,7 @@ export const Cabanas = ({ setAutenticado }) => {
               </div>
             </div>
 
-            <button 
+            <button
               type="button"
               onClick={anteriorSlide}
               style={{ position: 'absolute', top: '50%', left: '15px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}
@@ -452,7 +635,7 @@ export const Cabanas = ({ setAutenticado }) => {
               ❮
             </button>
 
-            <button 
+            <button
               type="button"
               onClick={siguienteSlide}
               style={{ position: 'absolute', top: '50%', right: '15px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}
@@ -462,8 +645,8 @@ export const Cabanas = ({ setAutenticado }) => {
 
             <div style={{ position: 'absolute', bottom: '10px', right: '20px', display: 'flex', gap: '6px' }}>
               {imagenesPuertoViejo.map((_, index) => (
-                <span 
-                  key={index} 
+                <span
+                  key={index}
                   onClick={() => setCurrentSlide(index)}
                   style={{ width: '10px', height: '10px', borderRadius: '50%', background: currentSlide === index ? '#ffffff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', display: 'inline-block' }}
                 />
@@ -483,7 +666,7 @@ export const Cabanas = ({ setAutenticado }) => {
                 <div style={styles.cardBody}>
                   <h3 style={styles.cardTitle}>{cabana.nombre}</h3>
                   <p style={styles.cardDesc}>{cabana.descripcion}</p>
-                  
+
                   <div style={styles.capacityBadge}>
                     👥 Hasta <strong>{cabana.capacidad} personas</strong>
                   </div>
@@ -587,10 +770,10 @@ export const Cabanas = ({ setAutenticado }) => {
 
                 {/* SECCIÓN DEL SIMULADOR DE PAGO */}
                 <label style={styles.label}>Método de Pago:</label>
-                <select 
-                  name="metodo_pago" 
-                  style={styles.input} 
-                  value={formData.metodo_pago} 
+                <select
+                  name="metodo_pago"
+                  style={styles.input}
+                  value={formData.metodo_pago}
                   onChange={handleChange}
                 >
                   <option value="SINPE_MOVIL">SINPE Móvil</option>
@@ -601,57 +784,57 @@ export const Cabanas = ({ setAutenticado }) => {
                   <div style={{ backgroundColor: '#f0fff4', border: '1px solid #c6f6d5', padding: '12px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem', color: '#22543d' }}>
                     <p style={{ margin: '0 0 6px 0' }}>📲 Realiza tu SINPE Móvil al número: <strong>8888-8888</strong> (Finca Don Litos).</p>
                     <label style={{ ...styles.label, marginBottom: '4px' }}>Número de comprobante o referencia:</label>
-                    <input 
-                      type="text" 
-                      name="comprobante_referencia" 
-                      required 
+                    <input
+                      type="text"
+                      name="comprobante_referencia"
+                      required
                       placeholder="Ej. Comprobante #987654"
-                      style={{ ...styles.input, marginBottom: 0 }} 
-                      value={formData.comprobante_referencia} 
-                      onChange={handleChange} 
+                      style={{ ...styles.input, marginBottom: 0 }}
+                      value={formData.comprobante_referencia}
+                      onChange={handleChange}
                     />
                   </div>
                 ) : (
                   <div style={{ backgroundColor: '#ebf8ff', border: '1px solid #bee3f8', padding: '14px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem', color: '#2b6cb0' }}>
                     <p style={{ margin: '0 0 10px 0', fontWeight: '600' }}>💳 Simulador de Pasarela de Pagos Segura</p>
-                    
+
                     <label style={{ ...styles.label, marginBottom: '4px' }}>Número de Tarjeta:</label>
-                    <input 
-                      type="text" 
-                      name="comprobante_referencia" 
-                      required 
+                    <input
+                      type="text"
+                      name="comprobante_referencia"
+                      required
                       maxLength="19"
                       placeholder="1234 5678 9101 1121"
-                      style={styles.input} 
-                      value={formData.comprobante_referencia} 
-                      onChange={handleChange} 
+                      style={styles.input}
+                      value={formData.comprobante_referencia}
+                      onChange={handleChange}
                     />
 
                     <div style={{ display: 'flex', gap: '10px' }}>
                       <div style={{ flex: 1 }}>
                         <label style={{ ...styles.label, marginBottom: '4px' }}>Vencimiento:</label>
-                        <input 
-                          type="text" 
-                          name="tarjeta_vencimiento" 
-                          required 
+                        <input
+                          type="text"
+                          name="tarjeta_vencimiento"
+                          required
                           maxLength="5"
                           placeholder="MM/AA"
-                          style={{ ...styles.input, marginBottom: 0 }} 
-                          value={formData.tarjeta_vencimiento} 
-                          onChange={handleChange} 
+                          style={{ ...styles.input, marginBottom: 0 }}
+                          value={formData.tarjeta_vencimiento}
+                          onChange={handleChange}
                         />
                       </div>
                       <div style={{ flex: 1 }}>
                         <label style={{ ...styles.label, marginBottom: '4px' }}>CVV / CVC:</label>
-                        <input 
-                          type="password" 
-                          name="tarjeta_cvv" 
-                          required 
+                        <input
+                          type="password"
+                          name="tarjeta_cvv"
+                          required
                           maxLength="4"
                           placeholder="123"
-                          style={{ ...styles.input, marginBottom: 0 }} 
-                          value={formData.tarjeta_cvv} 
-                          onChange={handleChange} 
+                          style={{ ...styles.input, marginBottom: 0 }}
+                          value={formData.tarjeta_cvv}
+                          onChange={handleChange}
                         />
                       </div>
                     </div>

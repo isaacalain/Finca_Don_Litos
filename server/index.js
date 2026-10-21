@@ -596,8 +596,8 @@ app.post('/api/reservas', async (req, res) => {
                 <hr style="border: none; border-top: 1px solid #ccc;" />
                 <p><strong>Detalles de la transacción:</strong></p>
                 <ul>
-                  <li><strong>Entrada (Check-in):</strong> ${fecha_checkin}</li>
-                  <li><strong>Salida (Check-out):</strong> ${fecha_checkout}</li>
+                  <li><strong>Entrada/Check-in (15:00):</strong> ${fecha_checkin}</li>
+                  <li><strong>Salida/Check-out (11:00):</strong> ${fecha_checkout}</li>
                   <li><strong>Monto Total:</strong> ₡${total}</li>
                   <li><strong>Método de Pago:</strong> ${metodoPagoFinal}</li>
                   <li><strong>Referencia / Comprobante:</strong> ${comprobante_referencia || 'N/A'}</li>
@@ -637,7 +637,7 @@ app.put('/api/admin/reservas/:id/estado', async (req, res) => {
   try {
     // 1. Actualizar el estado en la tabla 'reservas'
     const sqlReserva = 'UPDATE finca_don_litos.reservas SET estado = ? WHERE id_reserva = ?';
-    const [resultReserva] = await pool.query(sqlReserva, [estado, id]);
+    const [resultReserva] = await db.promise().query(sqlReserva, [estado, id]);
 
     if (resultReserva.affectedRows === 0) {
       return res.status(404).json({ success: false, error: 'Reserva no encontrada.' });
@@ -649,7 +649,7 @@ app.put('/api/admin/reservas/:id/estado', async (req, res) => {
     if (estado === 'cancelada') estadoPagoSync = 'rechazado';
 
     const sqlPagoSync = 'UPDATE finca_don_litos.pagos SET estado_pago = ? WHERE id_reserva = ?';
-    await pool.query(sqlPagoSync, [estadoPagoSync, id]);
+    await db.promise().query(sqlPagoSync, [estadoPagoSync, id]);
 
     res.json({ success: true, mensaje: `Reserva actualizada a '${estado}' y pago sincronizado exitosamente.` });
   } catch (err) {

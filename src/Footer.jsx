@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 export const Footer = () => {
-  const [modalActivo, setModalActivo] = useState(null); // 'ubicacion', 'contacto', 'politicas' o null
+  const [modalActivo, setModalActivo] = useState(null); // 'sobreNosotros', 'ubicacion', 'contacto', 'politicas' o null
 
   const cerrarModal = () => setModalActivo(null);
 
@@ -78,14 +78,17 @@ export const Footer = () => {
           justify-content: center;
           z-index: 1000;
           padding: 20px;
+          box-sizing: border-box;
         }
         .modal-content {
           background: #ffffff;
           color: #1e293b;
           border-radius: 12px;
           padding: 30px;
-          max-width: 500px;
+          max-width: 520px;
           width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
           position: relative;
           animation: modalFadeIn 0.2s ease-out;
@@ -125,9 +128,10 @@ export const Footer = () => {
           color: #0f172a;
         }
         .modal-body p {
-          margin: 8px 0;
+          margin: 10px 0;
           color: #334155;
-          line-height: 1.5;
+          line-height: 1.6;
+          font-size: 0.95rem;
         }
         .modal-body a {
           color: #0284c7;
@@ -150,6 +154,14 @@ export const Footer = () => {
         .btn-whatsapp:hover {
           background-color: #1da851;
         }
+        .img-propietarios {
+          width: 100%;
+          max-height: 380px;
+          object-fit: contain;
+          border-radius: 10px;
+          border: 2px solid #e2e8f0;
+          margin-bottom: 8px;
+        }
       `}</style>
 
       {/* FOOTER */}
@@ -168,6 +180,11 @@ export const Footer = () => {
           <div className="footer-section">
             <h4>Información</h4>
             <ul className="footer-links">
+              <li>
+                <button onClick={() => setModalActivo('sobreNosotros')}>
+                  🌿 Sobre Nosotros
+                </button>
+              </li>
               <li>
                 <button onClick={() => setModalActivo('ubicacion')}>
                   📍 Ubicación
@@ -207,6 +224,45 @@ export const Footer = () => {
       </footer>
 
       {/* VENTANAS EMERGENTES (MODALES) */}
+
+      {/* Modal: Sobre Nosotros */}
+      {modalActivo === 'sobreNosotros' && (
+        <div className="modal-overlay" onClick={cerrarModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>🌿 Sobre Nosotros</h3>
+              <button className="btn-cerrar" onClick={cerrarModal}>✕</button>
+            </div>
+            <div className="modal-body">
+              {/* Contenedor de la foto de los propietarios */}
+              <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                <img
+                  src="/images/propietarios.jpg" // Asegúrate de colocar tu imagen en public/images/propietarios.jpg
+                  alt="Propietarios de Finca Don Litos"
+                  className="img-propietarios"
+                  onError={(e) => {
+                    // Muestra un recuadro si aún no pones la imagen
+                    e.target.style.display = 'none';
+                  }}
+                />
+                <small style={{ color: '#64748b', fontStyle: 'italic', display: 'block' }}>
+                  Familia propietaria de Finca Don Litos.
+                </small>
+              </div>
+
+              <p>
+                Bienvenido a Finca Don Litos, un proyecto familiar ubicado en el hermoso distrito de Puerto Viejo, Talamanca, Limón, Costa Rica.
+              </p>
+              <p>
+                Nos inspira brindar a cada visitante un espacio único donde predomine la tranquilidad, privacidad y comodidad. Nuestra finca combina la magia y belleza de la selva tropical costarricense con una ubicación estratégica a muy pocos minutos de las playas más hermosas e icónicas del Caribe Sur.
+              </p>
+              <p>
+                Como anfitriones, nos apasiona recibir a nuestros huéspedes con la autenticidad y calidez de nuestra zona, garantizando una estadía relajante rodeada de flora y fauna local.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal: Ubicación */}
       {modalActivo === 'ubicacion' && (
