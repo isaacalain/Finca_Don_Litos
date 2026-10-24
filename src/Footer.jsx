@@ -277,6 +277,25 @@ export const Footer = () => {
               <p>
                 Ubicados en un entorno natural privilegiado, rodeados de flora y fauna local, a pocos minutos de las mejores playas del Caribe Sur.
               </p>
+              
+              {/* Botón para abrir Google Maps */}
+              <a
+                href="https://maps.app.goo.gl/r4Z2MxbTBL6ZBiFa9" // Reemplaza esto con tu enlace real de Google Maps
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-block',
+                  marginTop: '15px',
+                  backgroundColor: '#0284c7', // Color azul distintivo para mapas
+                  color: 'white',
+                  padding: '10px 18px',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontWeight: '600'
+                }}
+              >
+                🗺️ Ver ubicación en Google Maps
+              </a>
             </div>
           </div>
         </div>
@@ -318,7 +337,7 @@ export const Footer = () => {
             <div className="modal-body">
               <p><strong>Check-in:</strong> A partir de las 3:00 PM</p>
               <p><strong>Check-out:</strong> Hasta las 11:00 AM</p>
-              <p><strong>Métodos de Pago:</strong> SINPE Móvil y Tarjetas.</p>
+              <p><strong>Métodos de Pago:</strong> SINPE Móvil, Transferencias y Tarjetas.</p>
               <p><strong>Recomendación:</strong> Respetar el entorno natural y el descanso de los demás huéspedes.</p>
             </div>
           </div>

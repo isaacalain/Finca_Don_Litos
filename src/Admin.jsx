@@ -17,7 +17,7 @@ export default function Admin({ setAutenticado }) {
   const [modalPagoDetalle, setModalPagoDetalle] = useState(null);
   const [nuevoComprobanteAdmin, setNuevoComprobanteAdmin] = useState('');
   const [guardandoComprobante, setGuardandoComprobante] = useState(false);
-  
+
   // Datos del Usuario Administrador Logueado
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
     return JSON.parse(localStorage.getItem('adminUsuario') || '{}');
@@ -100,6 +100,14 @@ export default function Admin({ setAutenticado }) {
   const [adminPasswordReserva, setAdminPasswordReserva] = useState('');
   const [guardandoReservaAdmin, setGuardandoReservaAdmin] = useState(false);
   const [errorReservaAdmin, setErrorReservaAdmin] = useState('');
+
+  const [modalExitoAbierto, setModalExitoAbierto] = useState(false);
+  const [mensajeExito, setMensajeExito] = useState('');
+
+  const mostrarAlertaExito = (mensaje) => {
+    setMensajeExito(mensaje);
+    setModalExitoAbierto(true);
+  };
 
   // Cerrar menú desplegable al hacer clic fuera
   useEffect(() => {
@@ -245,7 +253,7 @@ export default function Admin({ setAutenticado }) {
     e.preventDefault();
 
     if (!reservaCheckin || !reservaCheckout) {
-      alert('Por favor selecciona las fechas de Check-in y Check-out en el calendario.');
+      mostrarAlertaExito('Por favor selecciona las fechas de Check-in y Check-out en el calendario.');
       return;
     }
 
@@ -256,7 +264,7 @@ export default function Admin({ setAutenticado }) {
 
     const total = calcularTotalAdminReserva();
     if (total <= 0) {
-      alert('La fecha de check-out debe ser posterior a la fecha de check-in.');
+      mostrarAlertaExito('La fecha de check-out debe ser posterior a la fecha de check-in.');
       return;
     }
 
@@ -308,7 +316,7 @@ export default function Admin({ setAutenticado }) {
       const resData = await response.json();
 
       if (resData.success) {
-        alert('✅ Reserva creada con éxito desde el panel de administración.');
+        mostrarAlertaExito('Reserva creada con éxito desde el panel de administración.');
         setMostrarModalCrearReserva(false);
         obtenerDatos();
       } else {
@@ -361,7 +369,7 @@ export default function Admin({ setAutenticado }) {
       const data = await response.json();
 
       if (data.success) {
-        alert('✅ Perfil actualizado correctamente');
+        mostrarAlertaExito('Perfil actualizado correctamente');
         setUsuarioLogueado(data.user);
         localStorage.setItem('adminUsuario', JSON.stringify(data.user));
         setMostrarModalPerfil(false);
@@ -434,7 +442,7 @@ export default function Admin({ setAutenticado }) {
       const data = await response.json();
 
       if (data.success) {
-        alert(`✅ Operación realizada con éxito.`);
+        mostrarAlertaExito(`Operación realizada con éxito.`);
         setModalAccionUsuario(false);
         obtenerDatos();
       } else {
@@ -462,20 +470,20 @@ export default function Admin({ setAutenticado }) {
             reserva.id === id ? { ...reserva, estado: nuevoEstado } : reserva
           )
         );
-        alert(`Reserva actualizada a '${nuevoEstado}' con éxito`);
+        mostrarAlertaExito(`Reserva actualizada a '${nuevoEstado}' con éxito`);
         obtenerDatos();
       } else {
-        alert('Error al actualizar el estado de la reserva');
+        mostrarAlertaExito('Error al actualizar el estado de la reserva');
       }
     } catch (err) {
       console.error(err);
-      alert('Error de conexión al cambiar el estado');
+      mostrarAlertaExito('Error de conexión al cambiar el estado');
     }
   };
 
   const handleGuardarComprobanteAdmin = async (idReserva) => {
     if (!nuevoComprobanteAdmin.trim()) {
-      alert('Por favor ingresa un número de comprobante o referencia válido.');
+      mostrarAlertaExito('Por favor ingresa un número de comprobante o referencia válido.');
       return;
     }
 
@@ -492,24 +500,22 @@ export default function Admin({ setAutenticado }) {
 
       const data = await response.json();
       if (data.success) {
-        alert('✅ Comprobante registrado con éxito.');
+        mostrarAlertaExito('Comprobante registrado con éxito.');
         setModalPagoDetalle(null);
         setNuevoComprobanteAdmin('');
         obtenerDatos();
       } else {
-        alert(data.error || 'Error al actualizar el comprobante.');
+        mostrarAlertaExito(data.error || 'Error al actualizar el comprobante.');
       }
     } catch (err) {
       console.error(err);
-      alert('Error de conexión con el servidor.');
+      mostrarAlertaExito('Error de conexión con el servidor.');
     } finally {
       setGuardandoComprobante(false);
     }
   };
 
   const handleCancelar = async (id) => {
-    if (!window.confirm('¿Estás seguro de cancelar esta reserva?')) return;
-
     try {
       const response = await fetch(`http://localhost:5000/api/reservas/${id}`, {
         method: 'DELETE',
@@ -521,13 +527,13 @@ export default function Admin({ setAutenticado }) {
             reserva.id === id ? { ...reserva, estado: 'cancelada' } : reserva
           )
         );
-        alert('Reserva marcada como cancelada');
+        mostrarAlertaExito('Reserva marcada como cancelada');
       } else {
-        alert('Error al cancelar la reserva');
+        mostrarAlertaExito('Error al cancelar la reserva');
       }
     } catch (err) {
       console.error(err);
-      alert('Error de conexión al intentar cancelar');
+      mostrarAlertaExito('Error de conexión al intentar cancelar');
     }
   };
 
@@ -540,12 +546,12 @@ export default function Admin({ setAutenticado }) {
       !nuevoCorreo || !nuevoCorreo.trim() ||
       !nuevaPassword || !nuevaPassword.trim()
     ) {
-      alert('⚠️ Todos los campos son obligatorios. Por favor, no dejes espacios en blanco.');
+      mostrarAlertaExito('Todos los campos son obligatorios. Por favor, no dejes espacios en blanco.');
       return;
     }
 
     if (nuevaPassword.trim().length < 6) {
-      alert('⚠️ La contraseña debe tener al menos 6 caracteres.');
+      mostrarAlertaExito('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
@@ -586,7 +592,7 @@ export default function Admin({ setAutenticado }) {
       const data = await response.json();
 
       if (data.success) {
-        alert(`✅ Usuario ${nuevoCorreo.trim()} creado correctamente con rol '${nuevoRol}'`);
+        mostrarAlertaExito(`Usuario ${nuevoCorreo.trim()} creado correctamente con rol '${nuevoRol}'`);
         setNuevoNombre('');
         setNuevoApellido('');
         setNuevoCorreo('');
@@ -938,7 +944,7 @@ export default function Admin({ setAutenticado }) {
             cursor: 'pointer'
           }}
         >
-          📋 Lista de Reservas ({reservas.length})
+          📋 Lista General de Reservas ({reservas.length})
         </button>
 
         <button
@@ -957,46 +963,45 @@ export default function Admin({ setAutenticado }) {
         </button>
       </div>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
       {cargando ? (
-        <p>Cargando información...</p>
+        <div style={{ textAlign: 'center', padding: '40px', fontSize: '18px', color: '#666' }}>
+          ⏳ Cargando panel de administración...
+        </div>
+      ) : error ? (
+        <div style={{ backgroundColor: '#f8d7da', color: '#721c24', padding: '15px', borderRadius: '6px', marginBottom: '20px' }}>
+          {error}
+        </div>
       ) : (
         <>
           {/* PESTAÑA 1: CALENDARIO DE OCUPACIÓN */}
           {tabActiva === 'calendario' && (
-            <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
-                <div>
-                  <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Selecciona Cabaña:</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+              <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                <h3 style={{ marginTop: 0, color: '#2e4d25' }}>Seleccionar Cabaña</h3>
+                <div style={{ marginBottom: '15px' }}>
                   <select
                     value={selectedCabanaId}
                     onChange={(e) => setSelectedCabanaId(e.target.value)}
-                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', minWidth: '280px', fontSize: '15px' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '14px' }}
                   >
                     {cabanas.map((c) => (
                       <option key={c.id_bungalow} value={c.id_bungalow}>
-                        {c.nombre} (Capacidad: {c.capacidad} personas)
+                        {c.nombre} (${c.precio_noche}/noche)
                       </option>
                     ))}
                   </select>
                 </div>
 
-                <button
-                  onClick={abrirModalCrearReserva}
-                  style={{ backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                  ➕ Crear Reserva Manual
-                </button>
-              </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <h3 style={{ margin: 0, color: '#2e4d25' }}>Calendario de Fechas</h3>
+                  <button
+                    onClick={abrirModalCrearReserva}
+                    style={{ backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                  >
+                    ➕ Crear Reserva
+                  </button>
+                </div>
 
-              <div style={{ display: 'flex', gap: '20px', marginBottom: '15px', fontSize: '14px', flexWrap: 'wrap' }}>
-                <div><span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#28a745', borderRadius: '50%', marginRight: '5px' }}></span><strong>Pagada / Confirmada</strong></div>
-                <div><span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#ffc107', borderRadius: '50%', marginRight: '5px' }}></span><strong>Reservada (Pendiente)</strong></div>
-                <div><span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#ffffff', border: '1px solid #ccc', borderRadius: '50%', marginRight: '5px' }}></span><strong>Disponible</strong></div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '25px', alignItems: 'start' }}>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <DatePicker
                     selected={fechaSeleccionadaAdmin}
@@ -1006,80 +1011,121 @@ export default function Admin({ setAutenticado }) {
                   />
                 </div>
 
-                <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <h3 style={{ marginTop: 0, color: '#2e4d25', borderBottom: '2px solid #2e4d25', paddingBottom: '8px' }}>
-                    📅 Reservas para el {format(fechaSeleccionadaAdmin, 'dd/MM/yyyy')}
-                  </h3>
+                <div style={{ marginTop: '15px', display: 'flex', gap: '15px', fontSize: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ width: '12px', height: '12px', backgroundColor: '#28a745', borderRadius: '50%', display: 'inline-block' }}></span> Pagada
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ width: '12px', height: '12px', backgroundColor: '#ffc107', borderRadius: '50%', display: 'inline-block' }}></span> Reservada (Pendiente)
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ width: '12px', height: '12px', backgroundColor: '#ffffff', border: '1px solid #ccc', borderRadius: '50%', display: 'inline-block' }}></span> Disponible
+                  </span>
+                </div>
+              </div>
 
-                  {reservasDelDia.length === 0 ? (
-                    <p style={{ color: '#666', fontStyle: 'italic' }}>No hay reservas activas para esta fecha en esta cabaña.</p>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '400px', overflowY: 'auto' }}>
-                      {reservasDelDia.map((res) => (
-                        <div key={res.id} style={{ backgroundColor: 'white', padding: '15px', borderRadius: '6px', border: '1px solid #cbd5e0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <strong style={{ color: '#2e4d25' }}>Reserva #{res.id}</strong>
-                            <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', ...obtenerEstiloEstado(res.estado) }}>
-                              {res.estado.toUpperCase()}
+              <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                <h3 style={{ marginTop: 0, color: '#2e4d25' }}>
+                  Reservas para el {format(fechaSeleccionadaAdmin, 'dd/MM/yyyy')}
+                </h3>
+
+                {reservasDelDia.length === 0 ? (
+                  <p style={{ color: '#666', fontStyle: 'italic', marginTop: '20px' }}>
+                    No hay reservas activas para esta fecha en la cabaña seleccionada.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
+                    {reservasDelDia.map((r) => {
+                      const estilo = obtenerEstiloEstado(r.estado);
+                      return (
+                        <div key={r.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', backgroundColor: '#fcfcfc' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                            <div>
+                              <strong style={{ fontSize: '15px', color: '#1a202c' }}>{r.nombre_cliente}</strong>
+                              <div style={{ fontSize: '13px', color: '#4a5568' }}>{r.email_cliente} • 📞 {r.telefono_cliente || 'N/D'}</div>
+                            </div>
+                            <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', ...estilo }}>
+                              {r.estado}
                             </span>
                           </div>
-                          <div style={{ fontSize: '13px', color: '#444', lineHeight: '1.5' }}>
-                            <div>👤 <strong>Cliente:</strong> {res.nombre_cliente}</div>
-                            <div>✉️ <strong>Email:</strong> {res.email_cliente}</div>
-                            <div>📞 <strong>Teléfono:</strong> {res.telefono_cliente || 'No especificado'}</div>
-                            <div>📆 <strong>Estancia:</strong> {res.fecha_checkin} al {res.fecha_checkout}</div>
-                            <div>💰 <strong>Total:</strong> ₡{Number(res.total).toLocaleString()}</div>
+
+                          <div style={{ fontSize: '13px', color: '#4a5568', marginBottom: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
+                            <div><strong>Check-in:</strong> {r.fecha_checkin}</div>
+                            <div><strong>Check-out:</strong> {r.fecha_checkout}</div>
+                            <div><strong>Total:</strong> ${r.total}</div>
+                            <div><strong>Comprobante:</strong> {r.comprobante_pago || 'Ninguno'}</div>
                           </div>
 
-                          <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                            {res.estado !== 'pagada' && (
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            {r.estado === 'reservada' && (
                               <button
-                                onClick={() => cambiarEstadoReserva(res.id, 'pagada')}
-                                style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}
+                                onClick={() => cambiarEstadoReserva(r.id, 'pagada')}
+                                style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                               >
                                 Marcar Pagada
                               </button>
                             )}
-                            {res.estado !== 'reservada' && (
+                            {r.estado === 'pagada' && (
                               <button
-                                onClick={() => cambiarEstadoReserva(res.id, 'reservada')}
-                                style={{ backgroundColor: '#ffc107', color: '#212529', border: 'none', padding: '5px 10px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}
+                                onClick={() => cambiarEstadoReserva(r.id, 'reservada')}
+                                style={{ backgroundColor: '#ffc107', color: '#212529', border: 'none', padding: '6px 12px', borderRadius: '5px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                               >
-                                Marcar Reservada
+                                Marcar Pendiente
+                              </button>
+                            )}
+                            {r.estado === 'cancelada' && (
+                              <button
+                                onClick={() => cambiarEstadoReserva(r.id, 'reservada')}
+                                style={{ backgroundColor: '#ffc107', color: '#212529', border: 'none', padding: '6px 12px', borderRadius: '5px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                              >
+                                Restaurar a Reservada
+                              </button>
+                            )}
+                            {r.estado !== 'cancelada' && (
+                              <button
+                                onClick={() => handleCancelar(r.id)}
+                                style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                              >
+                                Cancelar Reserva
                               </button>
                             )}
                             <button
-                              onClick={() => handleCancelar(res.id)}
-                              style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}
+                              onClick={() => {
+                                setModalPagoDetalle(r);
+                                setNuevoComprobanteAdmin(r.comprobante_pago || '');
+                              }}
+                              style={{ backgroundColor: '#17a2b8', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                             >
-                              Cancelar
+                              Ver/Editar Pago
                             </button>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* PESTAÑA 2: LISTA DE RESERVAS Y PAGOS */}
+          {/* PESTAÑA 2: LISTA GENERAL DE RESERVAS */}
           {tabActiva === 'lista' && (
-            <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
+            <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h3 style={{ marginTop: 0, color: '#2e4d25' }}>Gestión de Todas las Reservas</h3>
+
               <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
                 <input
                   type="text"
-                  placeholder="🔍 Buscar por nombre, email o ID..."
+                  placeholder="Buscar por cliente, correo o ID..."
                   value={busquedaTexto}
                   onChange={(e) => setBusquedaTexto(e.target.value)}
-                  style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', flex: 1, minWidth: '250px' }}
+                  style={{ flex: 1, minWidth: '220px', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '14px' }}
                 />
 
                 <select
                   value={filtroBungalow}
                   onChange={(e) => setFiltroBungalow(e.target.value)}
-                  style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
+                  style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '14px' }}
                 >
                   <option value="todos">Todas las Cabañas</option>
                   {cabanas.map((c) => (
@@ -1090,319 +1136,167 @@ export default function Admin({ setAutenticado }) {
                 <select
                   value={filtroEstado}
                   onChange={(e) => setFiltroEstado(e.target.value)}
-                  style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
+                  style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '14px' }}
                 >
                   <option value="todos">Todos los Estados</option>
+                  <option value="reservada">Reservada (Pendiente)</option>
                   <option value="pagada">Pagada</option>
-                  <option value="reservada">Reservada</option>
                   <option value="cancelada">Cancelada</option>
                 </select>
               </div>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#2e4d25', color: 'white' }}>
-                      <th style={{ padding: '12px 8px' }}>ID</th>
-                      <th style={{ padding: '12px 8px' }}>Cabaña</th>
-                      <th style={{ padding: '12px 8px' }}>Cliente</th>
-                      <th style={{ padding: '12px 8px' }}>Contacto</th>
-                      <th style={{ padding: '12px 8px' }}>Fechas</th>
-                      <th style={{ padding: '12px 8px' }}>Total</th>
-                      <th style={{ padding: '12px 8px' }}>Método / Ref</th>
-                      <th style={{ padding: '12px 8px' }}>Estado Pago</th>
-                      <th style={{ padding: '12px 8px' }}>Estado Reserva</th>
-                      <th style={{ padding: '12px 8px' }}>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reservasFiltradas.length === 0 ? (
-                      <tr>
-                        <td colSpan="10" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No se encontraron reservas con esos filtros.</td>
+              {reservasFiltradas.length === 0 ? (
+                <p style={{ color: '#666', fontStyle: 'italic' }}>No se encontraron reservas con los filtros seleccionados.</p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#2e4d25', color: 'white' }}>
+                        <th style={{ padding: '12px' }}>ID</th>
+                        <th style={{ padding: '12px' }}>Cliente</th>
+                        <th style={{ padding: '12px' }}>Cabaña</th>
+                        <th style={{ padding: '12px' }}>Check-in</th>
+                        <th style={{ padding: '12px' }}>Check-out</th>
+                        <th style={{ padding: '12px' }}>Total</th>
+                        <th style={{ padding: '12px' }}>Estado</th>
+                        <th style={{ padding: '12px' }}>Acciones</th>
                       </tr>
-                    ) : (
-                      reservasFiltradas.map((r) => {
-                        const rawMetodo = (
-                          r.metodo_pago || 
-                          r.metodo || 
-                          r.pago_metodo || 
-                          ''
-                        ).toString().trim().toUpperCase();
-
-                        const esTarjeta = rawMetodo.includes('TARJETA');
-                        const metodoFormateado = esTarjeta ? '💳 Tarjeta' : '📲 SINPE';
-
-                        const referencia =
-                          r.comprobante_referencia || 
-                          r.comprobante_url || 
-                          r.comprobante || 
-                          r.referencia || 
-                          r.pago_referencia || 
-                          'SIN-COMPROBANTE';
-
-                        const estadoPagoVal =
-                          r.estado_pago || 
-                          r.pago_estado || 
-                          (r.estado === 'pagada' ? 'aprobado' : 'en_revision');
-
+                    </thead>
+                    <tbody>
+                      {reservasFiltradas.map((r, index) => {
+                        const estilo = obtenerEstiloEstado(r.estado);
                         return (
-                          <tr key={r.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                            <td style={{ padding: '12px 8px' }}>#{r.id}</td>
-                            <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>{r.cabana_nombre}</td>
-                            <td style={{ padding: '12px 8px' }}>{r.nombre_cliente}</td>
-                            <td style={{ padding: '12px 8px' }}>{r.email_cliente}<br /><small>{r.telefono_cliente}</small></td>
-                            <td style={{ padding: '12px 8px', whiteSpace: 'nowrap' }}>{r.fecha_checkin} <br /> al {r.fecha_checkout}</td>
-                            <td style={{ padding: '12px 8px', whiteSpace: 'nowrap' }}>₡{Number(r.total || 0).toLocaleString('es-CR')}</td>
-
-                            <td style={{ padding: '12px 8px' }}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setNuevoComprobanteAdmin('');
-                                  setModalPagoDetalle({
-                                    idReserva: r.id,
-                                    cliente: r.nombre_cliente,
-                                    metodo: metodoFormateado,
-                                    referencia: referencia,
-                                    estadoPago: estadoPagoVal,
-                                    total: r.total
-                                  });
-                                }}
-                                style={{
-                                  backgroundColor: esTarjeta ? '#ebf8ff' : '#f0fff4',
-                                  border: `1px solid ${esTarjeta ? '#3182ce' : '#38a169'}`,
-                                  color: esTarjeta ? '#2b6cb0' : '#22543d',
-                                  padding: '5px 10px',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  fontWeight: 'bold',
-                                  fontSize: '12px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
-                                }}
-                                title="Hacer clic para ver detalles del pago"
-                              >
-                                {metodoFormateado} 🔍
-                              </button>
+                          <tr key={r.id} style={{ borderBottom: '1px solid #eee', backgroundColor: index % 2 === 0 ? '#fafafa' : '#ffffff' }}>
+                            <td style={{ padding: '12px' }}>#{r.id}</td>
+                            <td style={{ padding: '12px' }}>
+                              <div style={{ fontWeight: 'bold' }}>{r.nombre_cliente}</div>
+                              <div style={{ fontSize: '12px', color: '#666' }}>{r.email_cliente}</div>
                             </td>
-
-                            <td style={{ padding: '12px 8px' }}>
-                              <span style={{
-                                padding: '4px 8px',
-                                borderRadius: '12px',
-                                fontSize: '11px',
-                                fontWeight: 'bold',
-                                display: 'inline-block',
-                                backgroundColor: estadoPagoVal === 'aprobado' ? '#c6f6d5' : estadoPagoVal === 'rechazado' ? '#fed7d7' : '#feebc8',
-                                color: estadoPagoVal === 'aprobado' ? '#22543d' : estadoPagoVal === 'rechazado' ? '#9b2c2c' : '#744210'
-                              }}>
-                                {estadoPagoVal}
-                              </span>
-                            </td>
-
-                            <td style={{ padding: '12px 8px' }}>
-                              <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', display: 'inline-block', ...obtenerEstiloEstado(r.estado) }}>
+                            <td style={{ padding: '12px' }}>{r.cabana_nombre}</td>
+                            <td style={{ padding: '12px' }}>{r.fecha_checkin}</td>
+                            <td style={{ padding: '12px' }}>{r.fecha_checkout}</td>
+                            <td style={{ padding: '12px' }}>${r.total}</td>
+                            <td style={{ padding: '12px' }}>
+                              <span style={{ padding: '4px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 'bold', ...estilo }}>
                                 {r.estado}
                               </span>
                             </td>
-
-                            <td style={{ padding: '12px 8px' }}>
-                              <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
-                                {r.estado !== 'reservada' && (
+                            <td style={{ padding: '12px' }}>
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                {r.estado === 'reservada' && (
                                   <button
-                                    type="button"
-                                    onClick={() => cambiarEstadoReserva(r.id, 'reservada')}
-                                    style={{ backgroundColor: '#ffc107', color: '#212529', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
-                                  >
-                                    Reservar
-                                  </button>
-                                )}
-                                {r.estado !== 'pagada' && (
-                                  <button
-                                    type="button"
                                     onClick={() => cambiarEstadoReserva(r.id, 'pagada')}
-                                    style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                                    style={{ backgroundColor: '#28a745', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
                                   >
                                     Pagar
                                   </button>
                                 )}
+                                {r.estado === 'cancelada' && (
+                                  <button
+                                    onClick={() => cambiarEstadoReserva(r.id, 'reservada')}
+                                    style={{ backgroundColor: '#ffc107', color: '#212529', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                                  >
+                                    Restaurar
+                                  </button>
+                                )}
                                 {r.estado !== 'cancelada' && (
                                   <button
-                                    type="button"
-                                    onClick={() => cambiarEstadoReserva(r.id, 'cancelada')}
-                                    style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                                    onClick={() => handleCancelar(r.id)}
+                                    style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
                                   >
                                     Cancelar
                                   </button>
                                 )}
+                                <button
+                                  onClick={() => {
+                                    setModalPagoDetalle(r);
+                                    setNuevoComprobanteAdmin(r.comprobante_pago || '');
+                                  }}
+                                  style={{ backgroundColor: '#17a2b8', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                                >
+                                  Pago
+                                </button>
                               </div>
                             </td>
                           </tr>
                         );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* MODAL EMERGENTE PARA MOSTRAR Y REGISTRAR COMPROBANTE DE PAGO */}
-          {modalPagoDetalle && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1100
-            }}>
-              <div style={{
-                backgroundColor: 'white',
-                padding: '20px 25px',
-                borderRadius: '10px',
-                minWidth: '340px',
-                maxWidth: '440px',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-              }}>
-                <h3 style={{ marginTop: 0, color: '#2e4d25', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
-                  🧾 Detalle del Pago #{modalPagoDetalle.idReserva}
-                </h3>
-                
-                <div style={{ fontSize: '14px', margin: '15px 0', lineHeight: '1.8' }}>
-                  <div><strong>Cliente:</strong> {modalPagoDetalle.cliente}</div>
-                  <div><strong>Método Seleccionado:</strong> {modalPagoDetalle.metodo}</div>
-                  
-                  <div style={{ backgroundColor: '#f7fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', margin: '10px 0' }}>
-                    <strong style={{ color: '#2d3748' }}>Comprobante / Referencia:</strong>
-                    
-                    {(!modalPagoDetalle.referencia || modalPagoDetalle.referencia === 'SIN-COMPROBANTE' || modalPagoDetalle.referencia === 'Sin comprobante registrado') ? (
-                      <div style={{ marginTop: '8px' }}>
-                        <span style={{ color: '#e53e3e', fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>
-                          ⚠️ No hay comprobante registrado
-                        </span>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <input
-                            type="text"
-                            placeholder="Ej: 99887766 o Ref-1234"
-                            value={nuevoComprobanteAdmin}
-                            onChange={(e) => setNuevoComprobanteAdmin(e.target.value)}
-                            style={{ flex: 1, padding: '6px 8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px' }}
-                          />
-                          <button
-                            type="button"
-                            disabled={guardandoComprobante}
-                            onClick={() => handleGuardarComprobanteAdmin(modalPagoDetalle.idReserva)}
-                            style={{ backgroundColor: '#2b6cb0', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                          >
-                            {guardandoComprobante ? 'Guardando...' : 'Registrar'}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '15px', color: '#2b6cb0', fontWeight: 'bold', marginTop: '4px', wordBreak: 'break-all' }}>
-                        {modalPagoDetalle.referencia}
-                      </div>
-                    )}
-                  </div>
-
-                  <div><strong>Monto:</strong> ₡{Number(modalPagoDetalle.total || 0).toLocaleString('es-CR')}</div>
-                  <div><strong>Estado Transacción:</strong> <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{modalPagoDetalle.estadoPago}</span></div>
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setModalPagoDetalle(null);
-                    setNuevoComprobanteAdmin('');
-                  }}
-                  style={{
-                    width: '100%',
-                    backgroundColor: '#2e4d25',
-                    color: 'white',
-                    border: 'none',
-                    padding: '10px',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    marginTop: '10px'
-                  }}
-                >
-                  Cerrar
-                </button>
-              </div>
+              )}
             </div>
           )}
 
           {/* PESTAÑA 3: GESTIÓN DE USUARIOS */}
           {tabActiva === 'usuarios' && (
-            <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
+            <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h3 style={{ marginTop: 0, color: '#2e4d25' }}>Gestión de Usuarios del Sistema</h3>
 
-              {/* Formulario para Crear Nuevo Usuario */}
-              <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #e2e8f0' }}>
-                <h3 style={{ marginTop: 0, color: '#2e4d25', textAlign: 'center', marginBottom: '20px' }}>➕ Registrar Nuevo Usuario</h3>
-
-                <form onSubmit={prepararCrearUsuario} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', alignItems: 'flex-end' }}>
+              <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', marginBottom: '25px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ marginTop: 0, color: '#2e4d25', marginBottom: '15px' }}>👤 Registrar Nuevo Usuario o Administrador</h4>
+                
+                <form onSubmit={prepararCrearUsuario} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Nombre:</label>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>Nombre:</label>
                     <input
                       type="text"
+                      placeholder="Ej. Juan"
                       value={nuevoNombre}
                       onChange={(e) => setNuevoNombre(e.target.value)}
-                      placeholder="Ej. Juan"
-                      style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                     />
                   </div>
+
                   <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Apellidos:</label>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>Apellidos:</label>
                     <input
                       type="text"
+                      placeholder="Ej. Pérez"
                       value={nuevoApellido}
                       onChange={(e) => setNuevoApellido(e.target.value)}
-                      placeholder="Ej. Pérez Gómez"
-                      style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                     />
                   </div>
+
                   <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Correo Electrónico:</label>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>Correo Electrónico:</label>
                     <input
                       type="email"
+                      placeholder="correo@ejemplo.com"
                       value={nuevoCorreo}
                       onChange={(e) => setNuevoCorreo(e.target.value)}
-                      placeholder="usuario@gmail.com"
-                      style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                     />
                   </div>
+
                   <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Contraseña:</label>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>Contraseña (Mín. 6 car.):</label>
                     <input
                       type="password"
+                      placeholder="••••••••"
                       value={nuevaPassword}
                       onChange={(e) => setNuevaPassword(e.target.value)}
-                      placeholder="********"
-                      style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                     />
                   </div>
+
                   <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Rol:</label>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>Rol:</label>
                     <select
                       value={nuevoRol}
                       onChange={(e) => setNuevoRol(e.target.value)}
-                      style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box', backgroundColor: 'white' }}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', backgroundColor: 'white', boxSizing: 'border-box' }}
                     >
                       <option value="cliente">Cliente</option>
                       <option value="admin">Administrador</option>
                     </select>
                   </div>
-                  <div>
+
+                  <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                     <button
                       type="submit"
-                      style={{ width: '100%', backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                      style={{ width: '100%', backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '9px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
                     >
                       Crear Usuario
                     </button>
@@ -1410,8 +1304,7 @@ export default function Admin({ setAutenticado }) {
                 </form>
               </div>
 
-              {/* Tabla de Usuarios */}
-              <h3 style={{ color: '#2e4d25', borderBottom: '2px solid #2e4d25', paddingBottom: '8px' }}>📜 Lista de Usuarios Registrados</h3>
+              <h4 style={{ color: '#2e4d25', marginBottom: '15px' }}>Lista de Usuarios Registrados</h4>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
                   <thead>
@@ -1426,48 +1319,108 @@ export default function Admin({ setAutenticado }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {usuariosList.map((u) => (
-                      <tr key={u.id_usuario} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        <td style={{ padding: '12px' }}>#{u.id_usuario}</td>
-                        <td style={{ padding: '12px', fontWeight: 'bold' }}>{u.nombre} {u.apellidos}</td>
-                        <td style={{ padding: '12px' }}>{u.correo}</td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', backgroundColor: u.rol === 'admin' ? '#d1ecf1' : '#e2e8f0', color: u.rol === 'admin' ? '#0c5460' : '#333' }}>
-                            {u.rol?.toUpperCase()}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', backgroundColor: u.estado === 'deshabilitada' ? '#f8d7da' : '#d4edda', color: u.estado === 'deshabilitada' ? '#721c24' : '#155724' }}>
-                            {u.estado || 'activa'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px' }}>{u.creado_en}</td>
-                        <td style={{ padding: '12px' }}>
-                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                            <button
-                              type="button"
-                              onClick={() => prepararCambioEstado(u, u.estado || 'activa')}
-                              style={{ backgroundColor: '#ffc107', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                            >
-                              {u.estado === 'deshabilitada' ? 'Activar' : 'Deshabilitar'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => prepararEliminarUsuario(u)}
-                              style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {usuariosList.map((u, index) => {
+                      const estadoU = u.estado || 'activa';
+                      return (
+                        <tr key={u.id_usuario} style={{ borderBottom: '1px solid #eee', backgroundColor: index % 2 === 0 ? '#fafafa' : '#ffffff' }}>
+                          <td style={{ padding: '12px' }}>#{u.id_usuario}</td>
+                          <td style={{ padding: '12px', fontWeight: 'bold' }}>{u.nombre} {u.apellidos}</td>
+                          <td style={{ padding: '12px' }}>{u.correo}</td>
+                          <td style={{ padding: '12px' }}>
+                            <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: u.rol?.toLowerCase() === 'admin' ? '#d1ecf1' : '#e2e8f0', color: u.rol?.toLowerCase() === 'admin' ? '#0c5460' : '#334155' }}>
+                              {u.rol?.toUpperCase()}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: estadoU === 'activa' ? '#d4edda' : '#f8d7da', color: estadoU === 'activa' ? '#155724' : '#721c24' }}>
+                              {estadoU}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px', fontSize: '12px', color: '#666' }}>
+                            {u.fecha_creacion ? new Date(u.fecha_creacion).toISOString() : 'N/D'}
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                onClick={() => prepararCambioEstado(u, estadoU)}
+                                style={{ backgroundColor: estadoU === 'activa' ? '#ffc107' : '#28a745', color: estadoU === 'activa' ? '#212529' : 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                              >
+                                {estadoU === 'activa' ? 'Deshabilitar' : 'Activar'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => prepararEliminarUsuario(u)}
+                                style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                              >
+                                Eliminar
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
         </>
+      )}
+
+      {/* MODAL DE ÉXITO PERSONALIZADO */}
+      {modalExitoAbierto && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 3000,
+            padding: '20px',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              padding: '25px',
+              maxWidth: '380px',
+              width: '100%',
+              textAlign: 'center',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)'
+            }}
+          >
+            <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>✅</div>
+            <h3 style={{ margin: '0 0 10px 0', color: '#0f172a', fontSize: '1.2rem' }}>¡Éxito!</h3>
+            <p style={{ color: '#475569', fontSize: '0.95rem', marginBottom: '20px', lineHeight: '1.5' }}>
+              {mensajeExito}
+            </p>
+            <button
+              onClick={() => setModalExitoAbierto(false)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                backgroundColor: '#1a2332',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                fontSize: '0.95rem'
+              }}
+            >
+              Aceptar
+            </button>
+          </div>
+        </div>
       )}
 
       {/* MODAL DE SEGURIDAD PARA CREAR USUARIO DESDE ADMIN */}
@@ -1507,7 +1460,7 @@ export default function Admin({ setAutenticado }) {
                   disabled={guardandoUsuario}
                   style={{ backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
                 >
-                  {guardandoUsuario ? 'Verificando...' : 'Confirmar y Crear'}
+                  {guardandoUsuario ? 'Verificando...' : 'Autorizar y Crear'}
                 </button>
               </div>
             </form>
@@ -1515,16 +1468,16 @@ export default function Admin({ setAutenticado }) {
         </div>
       )}
 
-      {/* MODAL DE SEGURIDAD PARA CAMBIAR ESTADO / ELIMINAR USUARIOS */}
+      {/* MODAL DE ACCIONES SEGURAS PARA USUARIOS (Estado y Eliminar) */}
       {modalAccionUsuario && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', width: '100%', maxWidth: '400px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
             <h3 style={{ marginTop: 0, color: '#2e4d25' }}>
-              {modalAccionUsuario === 'eliminar' ? '⚠️ Confirmar Eliminación' : '🔐 Confirmar Cambio de Estado'}
+              {modalAccionUsuario === 'eliminar' ? '🗑️ Eliminar Usuario' : '🔒 Confirmar Cambio de Estado'}
             </h3>
             <p style={{ fontSize: '14px', color: '#555' }}>
               {modalAccionUsuario === 'eliminar'
-                ? `Estás a punto de eliminar al usuario ${usuarioObjetivo?.correo}. Ingresa tu contraseña de administrador para confirmar:`
+                ? `Estás a punto de eliminar al usuario ${usuarioObjetivo?.correo}. Ingresa tu contraseña de administrador:`
                 : `Estás a punto de cambiar el estado de ${usuarioObjetivo?.correo} a '${nuevoEstadoObjetivo}'. Ingresa tu contraseña:`}
             </p>
 
@@ -1554,9 +1507,9 @@ export default function Admin({ setAutenticado }) {
                 <button
                   type="submit"
                   disabled={procesandoAccion}
-                  style={{ backgroundColor: modalAccionUsuario === 'eliminar' ? '#dc3545' : '#2e4d25', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                  style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
                 >
-                  {procesandoAccion ? 'Verificando...' : 'Confirmar Acción'}
+                  {procesandoAccion ? 'Verificando...' : 'Confirmar'}
                 </button>
               </div>
             </form>
@@ -1564,114 +1517,109 @@ export default function Admin({ setAutenticado }) {
         </div>
       )}
 
-      {/* MODAL DE CREAR RESERVA MANUAL DESDE ADMIN */}
+      {/* MODAL DE CREAR RESERVA DESDE ADMIN */}
       {mostrarModalCrearReserva && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, overflowY: 'auto', padding: '20px' }}>
-          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', width: '100%', maxWidth: '500px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h3 style={{ marginTop: 0, color: '#2e4d25' }}>➕ Nueva Reserva (Administración)</h3>
+          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', width: '100%', maxWidth: '500px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ marginTop: 0, color: '#2e4d25', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>➕ Crear Reserva Manual (Admin)</h3>
 
-            <form onSubmit={handleCrearReservaAdminSubmit}>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Seleccionar Cabaña:</label>
+            <form onSubmit={handleCrearReservaAdminSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '15px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>Cabaña:</label>
                 <select
                   value={reservaCabanaId}
                   onChange={(e) => setReservaCabanaId(e.target.value)}
-                  style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }}
                 >
                   {cabanas.map((c) => (
-                    <option key={c.id_bungalow} value={c.id_bungalow}>{c.nombre} (₡{Number(c.precio_noche).toLocaleString()} / noche)</option>
+                    <option key={c.id_bungalow} value={c.id_bungalow}>{c.nombre} (${c.precio_noche}/noche)</option>
                   ))}
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Nombre Cliente:</label>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>Nombre del Cliente:</label>
                   <input
                     type="text"
                     required
                     value={formReservaData.nombre}
                     onChange={(e) => setFormReservaData({ ...formReservaData, nombre: e.target.value })}
                     placeholder="Nombre"
-                    style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Apellidos:</label>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>Apellidos:</label>
                   <input
                     type="text"
                     required
                     value={formReservaData.apellidos}
                     onChange={(e) => setFormReservaData({ ...formReservaData, apellidos: e.target.value })}
                     placeholder="Apellidos"
-                    style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Correo Electrónico:</label>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>Correo Electrónico:</label>
                   <input
                     type="email"
                     required
                     value={formReservaData.email}
                     onChange={(e) => setFormReservaData({ ...formReservaData, email: e.target.value })}
-                    placeholder="correo@mail.com"
-                    style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                    placeholder="correo@ejemplo.com"
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Teléfono:</label>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>Teléfono:</label>
                   <input
                     type="text"
-                    required
                     value={formReservaData.telefono}
                     onChange={(e) => setFormReservaData({ ...formReservaData, telefono: e.target.value })}
                     placeholder="88888888"
-                    style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Selecciona Fechas (Check-in / Check-out):</label>
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <DatePicker
-                    selected={reservaCheckin}
-                    onChange={handleReservaFechaChange}
-                    startDate={reservaCheckin}
-                    endDate={reservaCheckout}
-                    selectsRange
-                    inline
-                    minDate={new Date()}
-                    excludeDates={reservaFechasOcupadas}
-                    dayClassName={getModalDayClassName}
-                  />
-                </div>
-                {reservaErrorFecha && <p style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>{reservaErrorFecha}</p>}
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>Selecciona Rango de Fechas (Check-in / Check-out):</label>
+                <DatePicker
+                  selectsRange={true}
+                  startDate={reservaCheckin}
+                  endDate={reservaCheckout}
+                  onChange={handleReservaFechaChange}
+                  inline
+                  minDate={new Date()}
+                  dayClassName={getModalDayClassName}
+                />
+                {reservaErrorFecha && <p style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px' }}>{reservaErrorFecha}</p>}
               </div>
 
-              <div style={{ backgroundColor: '#f8f9fa', padding: '10px', borderRadius: '6px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 'bold', fontSize: '14px' }}>Monto Total Estimado:</span>
-                <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#2e4d25' }}>₡{calcularTotalAdminReserva().toLocaleString()}</span>
+              <div style={{ backgroundColor: '#f8f9fa', padding: '10px', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '14px', fontWeight: 'bold' }}>Total Estimado:</span>
+                <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#2e4d25' }}>${calcularTotalAdminReserva()}</span>
               </div>
 
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>🔐 Contraseña de Administrador (Confirmación):</label>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>Tu Contraseña de Administrador (Confirmación):</label>
                 <input
                   type="password"
                   required
                   value={adminPasswordReserva}
                   onChange={(e) => setAdminPasswordReserva(e.target.value)}
-                  placeholder="Tu contraseña de admin"
-                  style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                  placeholder="Ingresa tu contraseña para autorizar"
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                 />
               </div>
 
-              {errorReservaAdmin && <p style={{ color: 'red', fontSize: '13px', marginBottom: '10px' }}>{errorReservaAdmin}</p>}
+              {errorReservaAdmin && <p style={{ color: '#dc3545', fontSize: '13px', margin: 0 }}>{errorReservaAdmin}</p>}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button
                   type="button"
                   onClick={() => setMostrarModalCrearReserva(false)}
@@ -1692,71 +1640,73 @@ export default function Admin({ setAutenticado }) {
         </div>
       )}
 
-      {/* MODAL DE EDITAR PERFIL */}
+      {/* MODAL MINI PANEL DE EDITAR PERFIL */}
       {mostrarModalPerfil && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', width: '100%', maxWidth: '400px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ marginTop: 0, color: '#2e4d25' }}>⚙️ Editar Perfil de Administrador</h3>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', width: '100%', maxWidth: '420px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ marginTop: 0, color: '#2e4d25', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>⚙️ Editar Mi Perfil</h3>
 
-            <form onSubmit={handleGuardarPerfil}>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Nombre:</label>
+            <form onSubmit={handleGuardarPerfil} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '15px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>Nombre:</label>
                 <input
                   type="text"
                   required
                   value={editNombre}
                   onChange={(e) => setEditNombre(e.target.value)}
-                  style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                 />
               </div>
 
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Apellidos:</label>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>Apellidos:</label>
                 <input
                   type="text"
                   value={editApellido}
                   onChange={(e) => setEditApellido(e.target.value)}
-                  style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                 />
               </div>
 
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Correo Electrónico:</label>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>Correo Electrónico:</label>
                 <input
                   type="email"
                   required
                   value={editCorreo}
                   onChange={(e) => setEditCorreo(e.target.value)}
-                  style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                 />
               </div>
 
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Nueva Contraseña (Opcional):</label>
-                <input
-                  type="password"
-                  value={editNuevaPassword}
-                  onChange={(e) => setEditNuevaPassword(e.target.value)}
-                  placeholder="Dejar en blanco para mantener la actual"
-                  style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
-                />
-              </div>
+              <hr style={{ border: '0', borderTop: '1px solid #eee', margin: '5px 0' }} />
 
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Contraseña Actual (Obligatoria para guardar):</label>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>Contraseña Actual (Obligatoria para cambios):</label>
                 <input
                   type="password"
                   required
                   value={editPasswordActual}
                   onChange={(e) => setEditPasswordActual(e.target.value)}
-                  placeholder="********"
-                  style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                  placeholder="••••••••"
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                 />
               </div>
 
-              {errorPerfil && <p style={{ color: 'red', fontSize: '13px', marginBottom: '10px' }}>{errorPerfil}</p>}
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold' }}>Nueva Contraseña (Opcional):</label>
+                <input
+                  type="password"
+                  value={editNuevaPassword}
+                  onChange={(e) => setEditNuevaPassword(e.target.value)}
+                  placeholder="Dejar en blanco para no cambiar"
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                />
+              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              {errorPerfil && <p style={{ color: '#dc3545', fontSize: '13px', margin: 0 }}>{errorPerfil}</p>}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button
                   type="button"
                   onClick={() => setMostrarModalPerfil(false)}
@@ -1776,6 +1726,52 @@ export default function Admin({ setAutenticado }) {
           </div>
         </div>
       )}
+
+      {/* MODAL PARA VER/EDITAR COMPROBANTE DE PAGO */}
+      {modalPagoDetalle && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', width: '100%', maxWidth: '420px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ marginTop: 0, color: '#2e4d25', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>💳 Detalle de Pago / Comprobante</h3>
+            
+            <div style={{ fontSize: '14px', color: '#333', marginBottom: '15px', marginTop: '10px' }}>
+              <p style={{ margin: '5px 0' }}><strong>Reserva ID:</strong> #{modalPagoDetalle.id}</p>
+              <p style={{ margin: '5px 0' }}><strong>Cliente:</strong> {modalPagoDetalle.nombre_cliente}</p>
+              <p style={{ margin: '5px 0' }}><strong>Cabaña:</strong> {modalPagoDetalle.cabana_nombre}</p>
+              <p style={{ margin: '5px 0' }}><strong>Total:</strong> ${modalPagoDetalle.total}</p>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>Número de Comprobante / Referencia:</label>
+              <input
+                type="text"
+                value={nuevoComprobanteAdmin}
+                onChange={(e) => setNuevoComprobanteAdmin(e.target.value)}
+                placeholder="Ej. SINPE-123456 o Ref Bancaria"
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '15px' }}>
+              <button
+                type="button"
+                onClick={() => setModalPagoDetalle(null)}
+                style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer' }}
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                disabled={guardandoComprobante}
+                onClick={() => handleGuardarComprobanteAdmin(modalPagoDetalle.id)}
+                style={{ backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                {guardandoComprobante ? 'Guardando...' : 'Guardar Comprobante'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

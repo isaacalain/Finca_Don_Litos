@@ -7,7 +7,7 @@ export default function Login({ setAutenticado }) {
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
-
+  const [mostrarPassword, setMostrarPassword] = useState(false);
   // Estados para el Modal de Crear Cuenta (Solo Clientes)
   const [mostrarModalRegistro, setMostrarModalRegistro] = useState(false);
   const [regNombre, setRegNombre] = useState('');
@@ -37,9 +37,9 @@ export default function Login({ setAutenticado }) {
       const response = await fetch('http://localhost:5000/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          correo: correoLimpio, 
-          password: passwordLimpia 
+        body: JSON.stringify({
+          correo: correoLimpio,
+          password: passwordLimpia
         })
       });
 
@@ -107,7 +107,7 @@ export default function Login({ setAutenticado }) {
 
       if (response.ok && (data.success || data.id_usuario)) {
         alert('✅ ¡Cuenta creada exitosamente! Has iniciado sesión.');
-        
+
         const nuevoCliente = {
           id_usuario: data.id_usuario || data.id,
           id: data.id_usuario || data.id,
@@ -199,14 +199,45 @@ export default function Login({ setAutenticado }) {
                 ¿Olvidaste tu contraseña?
               </button>
             </div>
-            <input
-              type="password"
-              required
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={styles.input}
-            />
+
+            {/* Contenedor relativo para alinear el input y el botón del ojito */}
+            <div style={{ position: 'relative', width: '100%' }}>
+              <input
+                type={mostrarPassword ? 'text' : 'password'} // Cambia dinámicamente según el estado
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{
+                  ...styles.input,
+                  paddingRight: '40px', // Espacio para que el texto no quede debajo del ojito
+                  boxSizing: 'border-box'
+                }}
+              />
+
+              {/* Botón del ojito */}
+              <button
+                type="button"
+                onClick={() => setMostrarPassword(!mostrarPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '1.1rem',
+                  padding: '0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title={mostrarPassword ? "Ocultar contraseña" : "Ver contraseña"}
+              >
+                {mostrarPassword ? '👁️‍🗨️' : '👁️'}
+              </button>
+            </div>
           </div>
 
           <button type="submit" disabled={cargando} style={styles.btnPrimary}>

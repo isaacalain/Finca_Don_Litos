@@ -493,6 +493,7 @@ app.get('/api/reservas', (req, res) => {
       r.id_bungalow AS cabana_id,
       b.nombre AS cabana_nombre,
       r.nombre AS nombre_cliente,
+      r.apellidos AS apellidos_cliente,
       r.email AS email_cliente,
       r.telefono AS telefono_cliente,
       DATE_FORMAT(r.fecha_inicio, '%Y-%m-%d') AS fecha_checkin,
@@ -535,22 +536,25 @@ app.post('/api/reservas', async (req, res) => {
     comprobante_referencia 
   } = req.body;
 
-  const nombreCompleto = `${nombre} ${apellidos}`.trim();
+  const nombreLimpio = nombre ? nombre.trim() : '';
+  const apellidosLimpios = apellidos ? apellidos.trim() : '';
+  const nombreParaCorreo = `${nombreLimpio} ${apellidosLimpios}`.trim();
   const metodoPagoFinal = metodo_pago || 'SINPE_MOVIL'; 
   
   const estadoPagoInicial = metodoPagoFinal === 'TARJETA' ? 'aprobado' : 'en_revision';
   const estadoReservaInicial = metodoPagoFinal === 'TARJETA' ? 'pagada' : 'reservada';
 
-  // 1. Insertar la reserva principal
+  // 1. Insertar la reserva principal guardando nombre y apellidos por separado
   const sqlReserva = `
-    INSERT INTO reservas (id_bungalow, id_usuario, nombre, email, telefono, fecha_inicio, fecha_fin, monto_total, estado)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO reservas (id_bungalow, id_usuario, nombre, apellidos, email, telefono, fecha_inicio, fecha_fin, monto_total, estado)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(sqlReserva, [
     cabana_id, 
     id_usuario || null, 
-    nombreCompleto, 
+    nombreLimpio, 
+    apellidosLimpios, 
     email, 
     telefono, 
     fecha_checkin, 
@@ -591,14 +595,14 @@ app.post('/api/reservas', async (req, res) => {
             html: `
               <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
                 <h2 style="color: #2e4d25;">¡Reserva Registrada Exitosamente!</h2>
-                <p>Hola <strong>${nombreCompleto}</strong>,</p>
+                <p>Hola <strong>${nombreParaCorreo}</strong>,</p>
                 <p>Hemos recibido tu solicitud de reserva en <strong>Finca Don Litos</strong>.</p>
                 <hr style="border: none; border-top: 1px solid #ccc;" />
                 <p><strong>Detalles de la transacción:</strong></p>
                 <ul>
                   <li><strong>Entrada/Check-in (15:00):</strong> ${fecha_checkin}</li>
                   <li><strong>Salida/Check-out (11:00):</strong> ${fecha_checkout}</li>
-                  <li><strong>Monto Total:</strong> ₡${total}</li>
+                  <li><strong>Monto Total:</strong> $${total}</li>
                   <li><strong>Método de Pago:</strong> ${metodoPagoFinal}</li>
                   <li><strong>Referencia / Comprobante:</strong> ${comprobante_referencia || 'N/A'}</li>
                   <li><strong>Estado del Pago:</strong> ${estadoPagoInicial}</li>
@@ -733,7 +737,7 @@ app.delete('/api/reservas/:id', (req, res) => {
 });
 
 // Iniciar Servidor
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
 });

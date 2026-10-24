@@ -776,13 +776,13 @@ export const Cabanas = ({ setAutenticado }) => {
                   value={formData.metodo_pago}
                   onChange={handleChange}
                 >
-                  <option value="SINPE_MOVIL">SINPE Móvil</option>
+                  <option value="SINPE_MOVIL">SINPE Móvil o Transferencia</option>
                   <option value="TARJETA">Tarjeta de Crédito / Débito (Simulador)</option>
                 </select>
 
                 {formData.metodo_pago === 'SINPE_MOVIL' ? (
                   <div style={{ backgroundColor: '#f0fff4', border: '1px solid #c6f6d5', padding: '12px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem', color: '#22543d' }}>
-                    <p style={{ margin: '0 0 6px 0' }}>📲 Realiza tu SINPE Móvil al número: <strong>8888-8888</strong> (Finca Don Litos).</p>
+                    <p style={{ margin: '0 0 6px 0' }}>📲 Realiza tu SINPE Móvil al número: <strong>8550-1877</strong> (Finca Don Litos).</p>
                     <label style={{ ...styles.label, marginBottom: '4px' }}>Número de comprobante o referencia:</label>
                     <input
                       type="text"
