@@ -5,12 +5,36 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { isWithinInterval, eachDayOfInterval, isBefore, startOfDay, format } from 'date-fns';
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
+
+// 1. Arreglo estático declarado FUERA del componente para optimización extrema de React y el carrusel
+const imagenesPuertoViejo = [
+  {
+    url: '/puerto1.png',
+    titulo: 'Playas paradisíacas de arena blanca y aguas turquesas'
+  },
+  {
+    url: '/puerto2.png',
+    titulo: 'Naturaleza exuberante y biodiversidad única'
+  },
+  {
+    url: '/puerto3.png',
+    titulo: 'Atardeceres mágicos en el Caribe costarricense'
+  },
+  {
+    url: '/puerto4.png',
+    titulo: 'Atardeceres mágicos en el Caribe costarricense'
+  }
+];
+
 export const Cabanas = ({ setAutenticado }) => {
   const [cabanas, setCabanas] = useState([]);
   const [selectedCabana, setSelectedCabana] = useState(null);
   const [detailCabana, setDetailCabana] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const navigate = useNavigate();
+
+  // Estado para el Carrusel de Puerto Viejo, Limón
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   // Usuario Logueado o Visitante (Seguro con valor inicial por defecto)
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
@@ -36,36 +60,13 @@ export const Cabanas = ({ setAutenticado }) => {
   const [guardandoPerfil, setGuardandoPerfil] = useState(false);
   const [errorPerfil, setErrorPerfil] = useState('');
 
-
-
-  // Estado para el Carrusel de Puerto Viejo, Limón
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  const imagenesPuertoViejo = [
-    {
-      url: '/puerto1.png',
-      titulo: 'Playas paradisíacas de arena blanca y aguas turquesas'
-    },
-    {
-      url: '/puerto2.png',
-      titulo: 'Naturaleza exuberante y biodiversidad única'
-    },
-    {
-      url: '/puerto3.png',
-      titulo: 'Atardeceres mágicos en el Caribe costarricense'
-    },
-    {
-      url: '/puerto4.png',
-      titulo: 'Atardeceres mágicos en el Caribe costarricense'
-    }
-  ];
-
+  // Temporizador para el carrusel de imágenes de Puerto Viejo
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prevSlide) => (prevSlide + 1) % imagenesPuertoViejo.length);
     }, 4000);
     return () => clearInterval(timer);
-  }, [imagenesPuertoViejo.length]);
+  }, []);
 
   const siguienteSlide = () => {
     setCurrentSlide((prevSlide) => (prevSlide + 1) % imagenesPuertoViejo.length);
@@ -128,9 +129,6 @@ export const Cabanas = ({ setAutenticado }) => {
         const response = await fetch(`https://finca-don-litos.onrender.com/api/reservas/ocupadas/${selectedCabana.id_bungalow}`);
         const data = await response.json();
 
-        // <-- ¡AQUÍ: Mira qué trae el servidor en la consola!
-        console.log("Fechas crudas desde la BD:", data);
-
         let diasBloqueados = [];
 
         if (Array.isArray(data)) {
@@ -150,8 +148,6 @@ export const Cabanas = ({ setAutenticado }) => {
           });
         }
 
-        // <-- ¡AQUÍ: Mira cuántos días bloqueados calculó!
-        console.log("Días bloqueados calculados:", diasBloqueados);
         setFechasOcupadas(diasBloqueados);
       } catch (err) {
         console.error('Error al consultar fechas ocupadas:', err);
@@ -162,64 +158,63 @@ export const Cabanas = ({ setAutenticado }) => {
   }, [selectedCabana]);
 
   const abrirModalPerfil = () => {
-    setMenuPerfilAbierto(false); // Cierra el menú desplegable flotante
+    setMenuPerfilAbierto(false);
     setErrorPerfil('');
 
-    // Rellena los campos con los datos actuales del usuario
     setEditNombre(usuarioLogueado.nombre || '');
     setEditApellido(usuarioLogueado.apellidos || usuarioLogueado.apellido || '');
     setEditCorreo(usuarioLogueado.correo || '');
     setEditPasswordActual('');
     setEditNuevaPassword('');
 
-    setMostrarModalPerfil(true); // Abre la ventana modal
+    setMostrarModalPerfil(true);
   };
+
   const guardarPerfil = async (e) => {
-  e.preventDefault();
-  setGuardandoPerfil(true);
-  setErrorPerfil('');
+    e.preventDefault();
+    setGuardandoPerfil(true);
+    setErrorPerfil('');
 
-  try {
-    // Obtenemos el ID correcto del usuario logueado
-    const idUsuario = usuarioLogueado.id_usuario || usuarioLogueado.id || usuarioLogueado._id;
+    try {
+      const idUsuario = usuarioLogueado.id_usuario || usuarioLogueado.id || usuarioLogueado._id;
 
-    const response = await fetch('https://finca-don-litos.onrender.com/api/perfil', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id_usuario: idUsuario,
-        nombre: editNombre,
-        apellidos: editApellido,
-        correo: editCorreo,
-        passwordActual: editPasswordActual,
-        nuevaPassword: editNuevaPassword
-      })
-    });
+      const response = await fetch('https://finca-don-litos.onrender.com/api/perfil', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id_usuario: idUsuario,
+          nombre: editNombre,
+          apellidos: editApellido,
+          correo: editCorreo,
+          passwordActual: editPasswordActual,
+          nuevaPassword: editNuevaPassword
+        })
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (!response.ok || !data.success) {
-      throw new Error(data.error || 'Error al actualizar el perfil');
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Error al actualizar el perfil');
+      }
+
+      const usuarioActualizado = {
+        ...usuarioLogueado,
+        nombre: data.user.nombre,
+        apellidos: data.user.apellidos,
+        correo: data.user.correo
+      };
+
+      localStorage.setItem('adminUsuario', JSON.stringify(usuarioActualizado));
+      setUsuarioLogueado(usuarioActualizado);
+      setMostrarModalPerfil(false);
+      alert('¡Perfil actualizado con éxito!');
+    } catch (err) {
+      setErrorPerfil(err.message);
+    } finally {
+      setGuardandoPerfil(false);
     }
+  };
 
-    // Actualizamos los datos guardados localmente con lo que devuelve el backend
-    const usuarioActualizado = {
-      ...usuarioLogueado,
-      nombre: data.user.nombre,
-      apellidos: data.user.apellidos,
-      correo: data.user.correo
-    };
-
-    localStorage.setItem('adminUsuario', JSON.stringify(usuarioActualizado));
-    setUsuarioLogueado(usuarioActualizado);
-    setMostrarModalPerfil(false);
-    alert('¡Perfil actualizado con éxito!');
-  } catch (err) {
-    setErrorPerfil(err.message);
-  } finally {
-    setGuardandoPerfil(false);
-  }
-};
   const cerrarSesion = () => {
     localStorage.removeItem('adminAutenticado');
     localStorage.removeItem('adminUsuario');
@@ -248,7 +243,6 @@ export const Cabanas = ({ setAutenticado }) => {
     const nombreLower = cabana.nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     let carpeta = 'tucan';
 
-
     if (nombreLower.includes('tucan')) {
       carpeta = 'tucan';
     } else if (nombreLower.includes('perezoso')) {
@@ -265,6 +259,7 @@ export const Cabanas = ({ setAutenticado }) => {
       `/images/${carpeta}/${carpeta}5.jpeg`,
     ];
   };
+
   const nextImage = () => {
     const images = getImages(detailCabana);
     setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
@@ -274,6 +269,7 @@ export const Cabanas = ({ setAutenticado }) => {
     const images = getImages(detailCabana);
     setCurrentImageIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length);
   };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -344,7 +340,6 @@ export const Cabanas = ({ setAutenticado }) => {
     const strCheckin = format(fechaCheckin, 'yyyy-MM-dd');
     const strCheckout = format(fechaCheckout, 'yyyy-MM-dd');
 
-    // Formatear referencia si es tarjeta
     let refFinal = formData.comprobante_referencia;
     if (formData.metodo_pago === 'TARJETA') {
       const ultimosDigitos = formData.comprobante_referencia.slice(-4) || '4242';
@@ -390,7 +385,7 @@ export const Cabanas = ({ setAutenticado }) => {
       alert('Ocurrió un error al conectar con el servidor.');
     }
   };
-  // Función para manejar el clic en el botón de reservar
+
   const intentarReservar = (cabana) => {
     if (!usuarioLogueado || usuarioLogueado.rol === 'visitante' || !usuarioLogueado.nombre) {
       setMostrarModalAvisoLogin(true);
@@ -400,9 +395,7 @@ export const Cabanas = ({ setAutenticado }) => {
   };
 
   return (
-
     <>
-      {/* 1. Navbar con menú desplegable de 3 rayitas */}
       <Navbar />
 
       <div style={styles.container}>
@@ -419,6 +412,7 @@ export const Cabanas = ({ setAutenticado }) => {
           .react-datepicker__header { background-color: #2e4d25; }
           .react-datepicker__current-month, .react-datepicker__day-name { color: #ffffff !important; }
         `}</style>
+
         {/* MODAL EDITAR PERFIL */}
         {mostrarModalPerfil && (
           <div
@@ -552,6 +546,7 @@ export const Cabanas = ({ setAutenticado }) => {
             </div>
           </div>
         )}
+
         {/* Menú Superior de Usuario */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
           {usuarioLogueado && usuarioLogueado.rol !== 'visitante' && usuarioLogueado.nombre ? (
@@ -615,6 +610,7 @@ export const Cabanas = ({ setAutenticado }) => {
               <img
                 src={imagenesPuertoViejo[currentSlide]?.url}
                 alt="Puerto Viejo Limón"
+                loading="lazy"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)', padding: '20px', color: 'white' }}>
@@ -661,7 +657,7 @@ export const Cabanas = ({ setAutenticado }) => {
             return (
               <div key={cabana.id_bungalow} style={styles.card} onClick={() => handleOpenDetail(cabana)}>
                 <div style={styles.imageContainer}>
-                  <img src={images[0]} alt={cabana.nombre} style={styles.cardImage} />
+                  <img src={images[0]} alt={cabana.nombre} loading="lazy" style={styles.cardImage} />
                 </div>
                 <div style={styles.cardBody}>
                   <h3 style={styles.cardTitle}>{cabana.nombre}</h3>
@@ -718,7 +714,7 @@ export const Cabanas = ({ setAutenticado }) => {
               <button style={styles.closeBtn} onClick={() => setDetailCabana(null)}>✕</button>
 
               <div style={styles.carouselContainer}>
-                <img src={getImages(detailCabana)[currentImageIndex]} alt={detailCabana.nombre} style={styles.carouselImage} />
+                <img src={getImages(detailCabana)[currentImageIndex]} alt={detailCabana.nombre} loading="lazy" style={styles.carouselImage} />
                 {getImages(detailCabana).length > 1 && (
                   <>
                     <button style={{ ...styles.carouselBtn, left: '10px' }} onClick={prevImage}>❮</button>
@@ -877,7 +873,6 @@ export const Cabanas = ({ setAutenticado }) => {
         )}
       </div>
 
-      {/* 2. Pie de página al final de todo */}
       <Footer />
     </>
   );
