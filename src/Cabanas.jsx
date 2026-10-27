@@ -105,7 +105,7 @@ export const Cabanas = ({ setAutenticado }) => {
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/cabanas')
+    fetch('https://finca-don-litos.onrender.com/api/cabanas')
       .then((res) => res.json())
       .then((data) => setCabanas(data))
       .catch((err) => console.error('Error al cargar bungalows:', err));
@@ -125,7 +125,7 @@ export const Cabanas = ({ setAutenticado }) => {
 
     const obtenerFechasOcupadas = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/reservas/ocupadas/${selectedCabana.id_bungalow}`);
+        const response = await fetch(`https://finca-don-litos.onrender.com/api/reservas/ocupadas/${selectedCabana.id_bungalow}`);
         const data = await response.json();
 
         // <-- ¡AQUÍ: Mira qué trae el servidor en la consola!
@@ -183,7 +183,7 @@ export const Cabanas = ({ setAutenticado }) => {
     // Obtenemos el ID correcto del usuario logueado
     const idUsuario = usuarioLogueado.id_usuario || usuarioLogueado.id || usuarioLogueado._id;
 
-    const response = await fetch('http://localhost:5000/api/perfil', {
+    const response = await fetch('https://finca-don-litos.onrender.com/api/perfil', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -352,7 +352,7 @@ export const Cabanas = ({ setAutenticado }) => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/reservas', {
+      const response = await fetch('https://finca-don-litos.onrender.com/api/reservas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

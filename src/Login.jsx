@@ -34,7 +34,7 @@ export default function Login({ setAutenticado }) {
     const passwordLimpia = password.trim();
 
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
+      const response = await fetch('https://finca-don-litos.onrender.com/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -91,7 +91,7 @@ export default function Login({ setAutenticado }) {
     const nuevoCorreoLimpio = regCorreo.trim().toLowerCase();
 
     try {
-      const response = await fetch('http://localhost:5000/api/usuarios', {
+      const response = await fetch('https://finca-don-litos.onrender.com/api/usuarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -141,7 +141,7 @@ export default function Login({ setAutenticado }) {
     setForgotCargando(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/forgot-password', {
+      const response = await fetch('https://finca-don-litos.onrender.com/api/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ correo: forgotCorreo.trim().toLowerCase() })

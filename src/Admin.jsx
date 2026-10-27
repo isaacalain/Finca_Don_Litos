@@ -125,9 +125,9 @@ export default function Admin({ setAutenticado }) {
     setCargando(true);
     try {
       const [resReservas, resCabanas, resUsuarios] = await Promise.all([
-        fetch('http://localhost:5000/api/reservas'),
-        fetch('http://localhost:5000/api/cabanas'),
-        fetch('http://localhost:5000/api/usuarios')
+        fetch('https://finca-don-litos.onrender.com/api/reservas'),
+        fetch('https://finca-don-litos.onrender.com/api/cabanas'),
+        fetch('https://finca-don-litos.onrender.com/api/usuarios')
       ]);
 
       if (!resReservas.ok) throw new Error('Error al consultar las reservas');
@@ -169,7 +169,7 @@ export default function Admin({ setAutenticado }) {
       return;
     }
 
-    fetch(`http://localhost:5000/api/reservas/ocupadas/${reservaCabanaId}`)
+    fetch(`https://finca-don-litos.onrender.com/api/reservas/ocupadas/${reservaCabanaId}`)
       .then((res) => res.json())
       .then((data) => {
         const fechasDeshabilitadas = [];
@@ -276,7 +276,7 @@ export default function Admin({ setAutenticado }) {
     const adminCorreo = usuarioLogueado.correo || 'admin1@fincadonlitos.com';
 
     try {
-      const verifyRes = await fetch('http://localhost:5000/api/perfil', {
+      const verifyRes = await fetch('https://finca-don-litos.onrender.com/api/perfil', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -297,7 +297,7 @@ export default function Admin({ setAutenticado }) {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/reservas', {
+      const response = await fetch('https://finca-don-litos.onrender.com/api/reservas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -353,7 +353,7 @@ export default function Admin({ setAutenticado }) {
     setErrorPerfil('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/perfil', {
+      const response = await fetch('https://finca-don-litos.onrender.com/api/perfil', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -425,10 +425,10 @@ export default function Admin({ setAutenticado }) {
       };
 
       if (modalAccionUsuario === 'eliminar') {
-        url = `http://localhost:5000/api/usuarios/${usuarioObjetivo.id_usuario}`;
+        url = `https://finca-don-litos.onrender.com/api/usuarios/${usuarioObjetivo.id_usuario}`;
         method = 'DELETE';
       } else {
-        url = `http://localhost:5000/api/usuarios/${usuarioObjetivo.id_usuario}/estado`;
+        url = `https://finca-don-litos.onrender.com/api/usuarios/${usuarioObjetivo.id_usuario}/estado`;
         method = 'PUT';
         bodyData.nuevoEstado = nuevoEstadoObjetivo;
       }
@@ -458,7 +458,7 @@ export default function Admin({ setAutenticado }) {
 
   const cambiarEstadoReserva = async (id, nuevoEstado) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/reservas/${id}/estado`, {
+      const response = await fetch(`https://finca-don-litos.onrender.com/api/admin/reservas/${id}/estado`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado: nuevoEstado }),
@@ -489,7 +489,7 @@ export default function Admin({ setAutenticado }) {
 
     setGuardandoComprobante(true);
     try {
-      const response = await fetch('http://localhost:5000/api/admin/pagos/comprobante', {
+      const response = await fetch('https://finca-don-litos.onrender.com/api/admin/pagos/comprobante', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -517,7 +517,7 @@ export default function Admin({ setAutenticado }) {
 
   const handleCancelar = async (id) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/reservas/${id}`, {
+      const response = await fetch(`https://finca-don-litos.onrender.com/api/reservas/${id}`, {
         method: 'DELETE',
       });
 
@@ -575,7 +575,7 @@ export default function Admin({ setAutenticado }) {
     const adminCorreo = sessionAdmin.correo || 'admin1@fincadonlitos.com';
 
     try {
-      const response = await fetch('http://localhost:5000/api/admin/crear-usuario', {
+      const response = await fetch('https://finca-don-litos.onrender.com/api/admin/crear-usuario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
