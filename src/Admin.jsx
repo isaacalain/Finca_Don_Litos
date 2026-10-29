@@ -17,7 +17,7 @@ export default function Admin({ setAutenticado }) {
   const [modalPagoDetalle, setModalPagoDetalle] = useState(null);
   const [nuevoComprobanteAdmin, setNuevoComprobanteAdmin] = useState('');
   const [guardandoComprobante, setGuardandoComprobante] = useState(false);
-
+  const [modoEdicionPago, setModoEdicionPago] = useState(false);
   // Datos del Usuario Administrador Logueado
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
     return JSON.parse(localStorage.getItem('adminUsuario') || '{}');
@@ -501,6 +501,7 @@ export default function Admin({ setAutenticado }) {
       const data = await response.json();
       if (data.success) {
         mostrarAlertaExito('Comprobante registrado con éxito.');
+        setModoEdicionPago(false); // 👈 ¡Aquí mismo lo agregas!
         setModalPagoDetalle(null);
         setNuevoComprobanteAdmin('');
         obtenerDatos();
@@ -1235,7 +1236,7 @@ export default function Admin({ setAutenticado }) {
 
               <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', marginBottom: '25px', border: '1px solid #e2e8f0' }}>
                 <h4 style={{ marginTop: 0, color: '#2e4d25', marginBottom: '15px' }}>👤 Registrar Nuevo Usuario o Administrador</h4>
-                
+
                 <form onSubmit={prepararCrearUsuario} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>Nombre:</label>
@@ -1732,42 +1733,93 @@ export default function Admin({ setAutenticado }) {
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', width: '100%', maxWidth: '420px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
             <h3 style={{ marginTop: 0, color: '#2e4d25', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>💳 Detalle de Pago / Comprobante</h3>
-            
+
             <div style={{ fontSize: '14px', color: '#333', marginBottom: '15px', marginTop: '10px' }}>
               <p style={{ margin: '5px 0' }}><strong>Reserva ID:</strong> #{modalPagoDetalle.id}</p>
               <p style={{ margin: '5px 0' }}><strong>Cliente:</strong> {modalPagoDetalle.nombre_cliente}</p>
               <p style={{ margin: '5px 0' }}><strong>Cabaña:</strong> {modalPagoDetalle.cabana_nombre}</p>
-              <p style={{ margin: '5px 0' }}><strong>Total:</strong> ${modalPagoDetalle.total}</p>
+              <p style={{ margin: '5px 0' }}><strong>Total:</strong> ₡{Number(modalPagoDetalle.total || 0).toLocaleString('es-CR')}</p>
             </div>
 
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>Número de Comprobante / Referencia:</label>
-              <input
-                type="text"
-                value={nuevoComprobanteAdmin}
-                onChange={(e) => setNuevoComprobanteAdmin(e.target.value)}
-                placeholder="Ej. SINPE-123456 o Ref Bancaria"
-                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
-              />
-            </div>
+            {/* CASO 1: SI YA EXISTE UN COMPROBANTE Y NO ESTÁ EDITANDO */}
+            {modalPagoDetalle.comprobante_referencia && !modoEdicionPago ? (
+              <div style={{ textAlign: 'center', margin: '20px 0' }}>
+                <div style={{ backgroundColor: '#e6f4ea', padding: '15px', borderRadius: '8px', border: '1px solid #c6f6d5', marginBottom: '15px' }}>
+                  <small style={{ color: '#2e4d25', display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>
+                    Comprobante / Referencia Registrada:
+                  </small>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#1b4332', letterSpacing: '0.5px' }}>
+                    {modalPagoDetalle.comprobante_referencia}
+                  </span>
+                </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '15px' }}>
-              <button
-                type="button"
-                onClick={() => setModalPagoDetalle(null)}
-                style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer' }}
-              >
-                Cerrar
-              </button>
-              <button
-                type="button"
-                disabled={guardandoComprobante}
-                onClick={() => handleGuardarComprobanteAdmin(modalPagoDetalle.id)}
-                style={{ backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-              >
-                {guardandoComprobante ? 'Guardando...' : 'Guardar Comprobante'}
-              </button>
-            </div>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNuevoComprobanteAdmin(modalPagoDetalle.comprobante_referencia);
+                      setModoEdicionPago(true);
+                    }}
+                    style={{ backgroundColor: '#17a2b8', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                  >
+                    ✏️ Editar Comprobante
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModalPagoDetalle(null)}
+                    style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* CASO 2: SI NO HAY COMPROBANTE O PRESIONÓ EDITAR */
+              <div>
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                    {modalPagoDetalle.comprobante_referencia ? 'Nuevo Número de Comprobante:' : 'Número de Comprobante / Referencia:'}
+                  </label>
+                  <input
+                    type="text"
+                    value={nuevoComprobanteAdmin}
+                    onChange={(e) => setNuevoComprobanteAdmin(e.target.value)}
+                    placeholder="Ej. SINPE-123456 o Ref Bancaria"
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '15px' }}>
+                  {modalPagoDetalle.comprobante_referencia ? (
+                    <button
+                      type="button"
+                      onClick={() => setModoEdicionPago(false)}
+                      style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer' }}
+                    >
+                      Cancelar Edición
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setModalPagoDetalle(null)}
+                      style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer' }}
+                    >
+                      Cerrar
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={guardandoComprobante}
+                    onClick={() => handleGuardarComprobanteAdmin(modalPagoDetalle.id)}
+                    style={{ backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    {guardandoComprobante ? 'Guardando...' : 'Guardar Comprobante'}
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       )}

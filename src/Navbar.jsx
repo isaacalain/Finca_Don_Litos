@@ -360,10 +360,10 @@ export const Navbar = () => {
               </div>
 
               <p>
-                Bienvenido a <strong>Finca Don Litos</strong>, un proyecto familiar ubicado en el hermoso distrito de <strong>Puerto Viejo, Talamanca, Limón, Costa Rica</strong>.
+                Bienvenido a Finca Don Litos, un proyecto familiar ubicado en el hermoso distrito de Puerto Viejo, Talamanca, Limón, Costa Rica.
               </p>
               <p>
-                Nos inspira brindar a cada visitante un espacio único donde predomine la <strong>tranquilidad, privacidad y comodidad</strong>. Nuestra finca combina la magia y belleza de la selva tropical costarricense con una ubicación estratégica a muy pocos minutos de las playas más hermosas e icónicas del Caribe Sur.
+                Nos inspira brindar a cada visitante un espacio único donde predomine la tranquilidad, privacidad y comodidad. Nuestra finca combina la magia y belleza de la selva tropical costarricense con una ubicación estratégica a muy pocos minutos de las playas más hermosas e icónicas del Caribe Sur.
               </p>
               <p>
                 Como anfitriones, nos apasiona recibir a nuestros huéspedes con la autenticidad y calidez de nuestra zona, garantizando una estadía relajante rodeada de flora y fauna local.
