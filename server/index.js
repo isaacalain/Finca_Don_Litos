@@ -181,13 +181,13 @@ app.post('/api/forgot-password', async (req, res) => {
       [resetToken, formatoExpires, usuario.id_usuario]
     );
 
-    // 🌐 URL de producción en Vercel (si estás probando en local cambia temporalmente a localhost)
     const frontendUrl = process.env.FRONTEND_URL || 'https://finca-don-litos.vercel.app';
     const enlaceReset = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    // 🚀 Envío de correo mediante la API HTTP de Resend (evita bloqueos SMTP en Render)
+    // Envío usando Resend con replyTo hacia la finca
     await resend.emails.send({
       from: 'Finca Don Litos <onboarding@resend.dev>',
+      replyTo: 'fincadonlitos1@gmail.com', // 👈 Cualquier respuesta llegará al Gmail de la finca
       to: usuario.correo,
       subject: 'Recuperación de Contraseña - Finca Don Litos',
       html: `
