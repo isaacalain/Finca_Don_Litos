@@ -9,8 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Configuración del cliente de correo Resend
-const resend = new Resend(process.env.RESEND_API_KEY || 're_UPXtrhtq_3WzxKrX7wTXk5bMW8AB8AAjS');
+
+// Configuración del cliente de correo Resend leyendo la variable de entorno
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Verificar conexión de correo al iniciar
 transporter.verify((error) => {
