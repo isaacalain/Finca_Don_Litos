@@ -874,20 +874,20 @@ export const Cabanas = ({ setAutenticado }) => {
                 )}
 
                 <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-                  <button type="submit" style={styles.btnPrimary}>Confirmar Reserva</button>
-                  <button
-                    type="submit"
-                    disabled={enviandoReserva}
-                    style={{
-                      ...styles.btnPrimary,
-                      backgroundColor: enviandoReserva ? '#888' : '#2e4d25',
-                      cursor: enviandoReserva ? 'not-allowed' : 'pointer',
-                      opacity: enviandoReserva ? 0.7 : 1
-                    }}
-                  >
-                    {enviandoReserva ? 'Procesando Reserva...' : 'Confirmar Reserva'}
-                  </button>
-                </div>
+  <button
+    type="submit"
+    disabled={enviandoReserva}
+    style={{
+      ...styles.btnPrimary,
+      backgroundColor: enviandoReserva ? '#888' : '#2e4d25',
+      cursor: enviandoReserva ? 'not-allowed' : 'pointer',
+      opacity: enviandoReserva ? 0.7 : 1
+    }}
+  >
+    {enviandoReserva ? 'Procesando Reserva...' : 'Confirmar Reserva'}
+  </button>
+  <button type="button" style={styles.btnSecondary} onClick={() => setSelectedCabana(null)}>Cancelar</button>
+</div>
               </form>
             </div>
           </div>
