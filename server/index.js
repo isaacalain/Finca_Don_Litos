@@ -2,21 +2,15 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const crypto = require('crypto');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Configuración única del transportador de correo
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: 'fincadonlitos1@gmail.com',
-    pass: 'zkdq hvje vhvp miqb'
-  }
-});
+// Configuración del cliente de correo Resend
+const resend = new Resend(process.env.RESEND_API_KEY || 're_UPXtrhtq_3WzxKrX7wTXk5bMW8AB8AAjS');
 
 // Verificar conexión de correo al iniciar
 transporter.verify((error) => {
@@ -193,10 +187,13 @@ app.post('/api/forgot-password', async (req, res) => {
       [resetToken, formatoExpires, usuario.id_usuario]
     );
 
-    const enlaceReset = `http://localhost:5173/reset-password?token=${resetToken}`;
+    // 🌐 URL de producción en Vercel (si estás probando en local cambia temporalmente a localhost)
+    const frontendUrl = process.env.FRONTEND_URL || 'https://finca-don-litos.vercel.app';
+    const enlaceReset = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    const mailOptions = {
-      from: 'Finca Don Litos <fincadonlitos1@gmail.com>',
+    // 🚀 Envío de correo mediante la API HTTP de Resend (evita bloqueos SMTP en Render)
+    await resend.emails.send({
+      from: 'Finca Don Litos <onboarding@resend.dev>',
       to: usuario.correo,
       subject: 'Recuperación de Contraseña - Finca Don Litos',
       html: `
@@ -209,9 +206,8 @@ app.post('/api/forgot-password', async (req, res) => {
           <p>Si tú no solicitaste esto, puedes ignorar este mensaje.</p>
         </div>
       `
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
     res.json({ success: true, message: 'Se ha enviado un correo con las instrucciones.' });
 
   } catch (err) {
@@ -585,11 +581,11 @@ app.post('/api/reservas', async (req, res) => {
         console.error('⚠️ Error al registrar el pago en la tabla pagos:', errPago);
       }
 
-      // 3. Enviar correo electrónico de confirmación
+      // 3. Enviar correo electrónico de confirmación mediante Resend (API HTTP)
       try {
         if (email) {
-          const mailOptions = {
-            from: 'Finca Don Litos <fincadonlitos1@gmail.com>',
+          await resend.emails.send({
+            from: 'Finca Don Litos <onboarding@resend.dev>',
             to: email,
             subject: 'Confirmación de Reserva y Pago - Finca Don Litos',
             html: `
@@ -610,11 +606,10 @@ app.post('/api/reservas', async (req, res) => {
                 <p>¡Te esperamos!</p>
               </div>
             `
-          };
-          await transporter.sendMail(mailOptions);
+          });
         }
       } catch (mailErr) {
-        console.error('⚠️ Error al enviar correo de confirmación:', mailErr);
+        console.error('⚠️ Error al enviar correo de confirmación con Resend:', mailErr);
       }
 
       res.json({
