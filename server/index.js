@@ -13,14 +13,7 @@ app.use(express.json());
 // Configuración del cliente de correo Resend leyendo la variable de entorno
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Verificar conexión de correo al iniciar
-transporter.verify((error) => {
-  if (error) {
-    console.error('❌ Error al conectar con el servicio de correo:', error);
-  } else {
-    console.log('✅ Servidor de correo listo para enviar mensajes.');
-  }
-});
+
 
 const db = mysql.createPool({
   host: 'mysql-313f4314-isaacalain5-d93c.l.aivencloud.com',
