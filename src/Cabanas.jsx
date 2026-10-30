@@ -76,6 +76,7 @@ export const Cabanas = ({ setAutenticado }) => {
     setCurrentSlide((prevSlide) => (prevSlide - 1 + imagenesPuertoViejo.length) % imagenesPuertoViejo.length);
   };
 
+  const [enviandoReserva, setEnviandoReserva] = useState(false);
   // Estado de fechas ocupadas
   const [fechasOcupadas, setFechasOcupadas] = useState([]);
   const [fechasSeleccionadas, setFechasSeleccionadas] = useState([null, null]);
@@ -325,6 +326,9 @@ export const Cabanas = ({ setAutenticado }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // 🛡️ Evitar ejecuciones dobles si ya se está procesando
+    if (enviandoReserva) return;
+
     if (!fechaCheckin || !fechaCheckout) {
       alert('Por favor selecciona las fechas de Check-in y Check-out en el calendario.');
       return;
@@ -336,6 +340,9 @@ export const Cabanas = ({ setAutenticado }) => {
       alert('La fecha de check-out debe ser posterior a la fecha de check-in.');
       return;
     }
+
+    // Activa el bloqueo de seguridad
+    setEnviandoReserva(true);
 
     const strCheckin = format(fechaCheckin, 'yyyy-MM-dd');
     const strCheckout = format(fechaCheckout, 'yyyy-MM-dd');
@@ -383,6 +390,9 @@ export const Cabanas = ({ setAutenticado }) => {
     } catch (error) {
       console.error('Error al enviar la reserva:', error);
       alert('Ocurrió un error al conectar con el servidor.');
+    } finally {
+      // 🔓 Desbloquea el botón al finalizar la solicitud (éxito o error)
+      setEnviandoReserva(false);
     }
   };
 
@@ -773,7 +783,7 @@ export const Cabanas = ({ setAutenticado }) => {
                   onChange={handleChange}
                 >
                   <option value="SINPE_MOVIL">SINPE Móvil o Transferencia</option>
-                  <option value="TARJETA">Tarjeta de Crédito / Débito (Simulador)</option>
+                  <option value="TARJETA">Tarjeta de Crédito / Débito </option>
                 </select>
 
                 {formData.metodo_pago === 'SINPE_MOVIL' ? (
@@ -792,7 +802,7 @@ export const Cabanas = ({ setAutenticado }) => {
                   </div>
                 ) : (
                   <div style={{ backgroundColor: '#ebf8ff', border: '1px solid #bee3f8', padding: '14px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem', color: '#2b6cb0' }}>
-                    <p style={{ margin: '0 0 10px 0', fontWeight: '600' }}>💳 Simulador de Pasarela de Pagos Segura</p>
+                    <p style={{ margin: '0 0 10px 0', fontWeight: '600' }}>💳 Pasarela de Pagos Segura</p>
 
                     <label style={{ ...styles.label, marginBottom: '4px' }}>Número de Tarjeta:</label>
                     <input
@@ -865,7 +875,18 @@ export const Cabanas = ({ setAutenticado }) => {
 
                 <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
                   <button type="submit" style={styles.btnPrimary}>Confirmar Reserva</button>
-                  <button type="button" style={styles.btnSecondary} onClick={() => setSelectedCabana(null)}>Cancelar</button>
+                  <button
+                    type="submit"
+                    disabled={enviandoReserva}
+                    style={{
+                      ...styles.btnPrimary,
+                      backgroundColor: enviandoReserva ? '#888' : '#2e4d25',
+                      cursor: enviandoReserva ? 'not-allowed' : 'pointer',
+                      opacity: enviandoReserva ? 0.7 : 1
+                    }}
+                  >
+                    {enviandoReserva ? 'Procesando Reserva...' : 'Confirmar Reserva'}
+                  </button>
                 </div>
               </form>
             </div>
