@@ -589,41 +589,59 @@ app.post('/api/reservas', async (req, res) => {
         console.error('⚠️ Error al registrar el pago en la tabla pagos:', errPago);
       }
 
-      // 3. Enviar correo electrónico de confirmación mediante Resend (API HTTP)
+      // 3. Enviar correo electrónico de confirmación mediante Brevo (API HTTP)
       try {
         if (email) {
-          await resend.emails.send({
-            from: 'Finca Don Litos <onboarding@resend.dev>',
-            to: email,
-            subject: 'Confirmación de Reserva y Pago - Finca Don Litos',
-            html: `
-              <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-                <h2 style="color: #2e4d25;">¡Reserva Registrada Exitosamente!</h2>
-                <p>Hola <strong>${nombreParaCorreo}</strong>,</p>
-                <p>Hemos recibido tu solicitud de reserva en <strong>Finca Don Litos</strong>.</p>
-                <hr style="border: none; border-top: 1px solid #ccc;" />
-                <p><strong>Detalles de la transacción:</strong></p>
-                <ul>
-                  <li><strong>Entrada/Check-in (15:00):</strong> ${fecha_checkin}</li>
-                  <li><strong>Salida/Check-out (11:00):</strong> ${fecha_checkout}</li>
-                  <li><strong>Monto Total:</strong> $${total}</li>
-                  <li><strong>Método de Pago:</strong> ${metodoPagoFinal}</li>
-                  <li><strong>Referencia / Comprobante:</strong> ${comprobante_referencia || 'N/A'}</li>
-                  <li><strong>Estado del Pago:</strong> ${estadoPagoInicial}</li>
-                </ul>
-                <p>¡Te esperamos!</p>
-              </div>
-            `
+          const responseBrevo = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+              'accept': 'application/json',
+              'api-key': process.env.BREVO_API_KEY,
+              'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+              sender: { name: "Finca Don Litos", email: "fincadonlitos1@gmail.com" },
+              to: [{ email: email, name: nombreParaCorreo }],
+              replyTo: { email: "fincadonlitos1@gmail.com", name: "Finca Don Litos" },
+              subject: 'Confirmación de Reserva y Pago - Finca Don Litos',
+              htmlContent: `
+                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px;">
+                  <h2 style="color: #2e4d25; text-align: center;">¡Reserva Registrada Exitosamente!</h2>
+                  <p>Hola <strong>${nombreParaCorreo}</strong>,</p>
+                  <p>Hemos recibido tu solicitud de reserva en <strong>Finca Don Litos</strong>.</p>
+                  <hr style="border: none; border-top: 1px solid #ccc; margin: 15px 0;" />
+                  <p><strong>Detalles de la transacción:</strong></p>
+                  <ul style="line-height: 1.6;">
+                    <li><strong>Entrada / Check-in (15:00):</strong> ${fecha_checkin}</li>
+                    <li><strong>Salida / Check-out (11:00):</strong> ${fecha_checkout}</li>
+                    <li><strong>Monto Total:</strong> $${total}</li>
+                    <li><strong>Método de Pago:</strong> ${metodoPagoFinal}</li>
+                    <li><strong>Referencia / Comprobante:</strong> ${comprobante_referencia || 'N/A'}</li>
+                    <li><strong>Estado del Pago:</strong> ${estadoPagoInicial}</li>
+                  </ul>
+                  <p style="margin-top: 20px;">¡Te esperamos con los brazos abiertos!</p>
+                  <p style="text-align: center; color: #777; font-size: 12px; margin-top: 30px;">Finca Don Litos - Naturaleza y Descanso</p>
+                </div>
+              `
+            })
           });
+
+          const dataBrevo = await responseBrevo.json();
+          if (!responseBrevo.ok) {
+            console.error('⚠️ Error al enviar correo de reserva con Brevo:', dataBrevo);
+          } else {
+            console.log('✅ Correo de reserva enviado exitosamente vía Brevo:', dataBrevo.messageId);
+          }
         }
       } catch (mailErr) {
-        console.error('⚠️ Error al enviar correo de confirmación con Resend:', mailErr);
+        console.error('⚠️ Error inesperado al enviar correo de reserva con Brevo:', mailErr);
       }
 
-      res.json({
+      // 4. Responder al cliente indicando que todo salió bien
+      return res.json({
         success: true,
         id_reserva: idReservaCreada,
-        mensaje: 'Reserva y pago simulado registrados correctamente'
+        mensaje: 'Reserva y pago registrados correctamente'
       });
     });
   });
