@@ -2,7 +2,7 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const { Resend } = require('resend');
+const Brevo = require('@getbrevo/brevo');
 const crypto = require('crypto');
 
 const app = express();
@@ -10,8 +10,10 @@ app.use(cors());
 app.use(express.json());
 
 
-// Configuración del cliente de correo Resend leyendo la variable de entorno
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Configuración de Brevo
+const apiInstance = new Brevo.TransactionalEmailsApi();
+const apiKey = apiInstance.authentications['apiKey'];
+apiKey.apiKey = process.env.BREVO_API_KEY;
 
 
 
@@ -156,7 +158,7 @@ app.post('/api/usuarios', async (req, res) => {
   }
 });
 
-// Ruta para solicitar recuperación de contraseña
+// Ruta para solicitar recuperación de contraseña mediante Brevo
 app.post('/api/forgot-password', async (req, res) => {
   const { correo } = req.body;
 
@@ -184,28 +186,29 @@ app.post('/api/forgot-password', async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://finca-don-litos.vercel.app';
     const enlaceReset = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    // Envío usando Resend con replyTo hacia la finca
-    await resend.emails.send({
-      from: 'Finca Don Litos <onboarding@resend.dev>',
-      replyTo: 'fincadonlitos1@gmail.com', // 👈 Cualquier respuesta llegará al Gmail de la finca
-      to: usuario.correo,
-      subject: 'Recuperación de Contraseña - Finca Don Litos',
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-          <h2 style="color: #2e4d25;">Recuperación de Contraseña</h2>
-          <p>Hola <strong>${usuario.nombre}</strong>,</p>
-          <p>Has solicitado restablecer tu contraseña. Haz clic en el siguiente botón para continuar:</p>
-          <a href="${enlaceReset}" style="display: inline-block; background-color: #2e4d25; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 15px 0;">Restablecer Contraseña</a>
-          <p>Este enlace expirará en 15 minutos.</p>
-          <p>Si tú no solicitaste esto, puedes ignorar este mensaje.</p>
-        </div>
-      `
-    });
+    // Estructura del correo transaccional para Brevo
+    const sendSmtpEmail = new Brevo.SendSmtpEmail();
+    sendSmtpEmail.subject = "Recuperación de Contraseña - Finca Don Litos";
+    sendSmtpEmail.sender = { "name": "Finca Don Litos", "email": "fincadonlitos1@gmail.com" };
+    sendSmtpEmail.to = [{ "email": usuario.correo, "name": usuario.nombre }];
+    sendSmtpEmail.replyTo = { "email": "fincadonlitos1@gmail.com", "name": "Finca Don Litos" };
+    sendSmtpEmail.htmlContent = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+        <h2 style="color: #2e4d25;">Recuperación de Contraseña</h2>
+        <p>Hola <strong>${usuario.nombre}</strong>,</p>
+        <p>Has solicitado restablecer tu contraseña. Haz clic en el siguiente botón para continuar:</p>
+        <a href="${enlaceReset}" style="display: inline-block; background-color: #2e4d25; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 15px 0;">Restablecer Contraseña</a>
+        <p>Este enlace expirará en 15 minutos.</p>
+        <p>Si tú no solicitaste esto, puedes ignorar este mensaje.</p>
+      </div>
+    `;
+
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
 
     res.json({ success: true, message: 'Se ha enviado un correo con las instrucciones.' });
 
   } catch (err) {
-    console.error('Error en forgot-password:', err);
+    console.error('Error en forgot-password con Brevo:', err);
     res.status(500).json({ success: false, error: 'Error en el servidor al procesar la solicitud.' });
   }
 });
