@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 
-// Configuración de Brevo
+// Instanciación correcta para la versión moderna del SDK
 const apiInstance = new Brevo.TransactionalEmailsApi();
 const apiKey = apiInstance.authentications['apiKey'];
 apiKey.apiKey = process.env.BREVO_API_KEY;
@@ -186,8 +186,8 @@ app.post('/api/forgot-password', async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://finca-don-litos.vercel.app';
     const enlaceReset = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    // Estructura del correo transaccional para Brevo
-    const sendSmtpEmail = new Brevo.SendSmtpEmail();
+    // Crear la estructura del correo
+    const sendSmtpEmail = new SendSmtpEmail();
     sendSmtpEmail.subject = "Recuperación de Contraseña - Finca Don Litos";
     sendSmtpEmail.sender = { "name": "Finca Don Litos", "email": "fincadonlitos1@gmail.com" };
     sendSmtpEmail.to = [{ "email": usuario.correo, "name": usuario.nombre }];
