@@ -10,10 +10,11 @@ app.use(cors());
 app.use(express.json());
 
 
-// Instanciación correcta para la versión moderna del SDK
-const apiInstance = new Brevo.TransactionalEmailsApi();
-const apiKey = apiInstance.authentications['apiKey'];
-apiKey.apiKey = process.env.BREVO_API_KEY;
+const { TransactionalEmailsApi, SendSmtpEmail } = require('@getbrevo/brevo');
+
+// Instanciación correcta de la API de Brevo
+const apiInstance = new TransactionalEmailsApi();
+apiInstance.setApiKey(0, process.env.BREVO_API_KEY);
 
 
 
@@ -48,9 +49,9 @@ app.post('/api/login', (req, res) => {
   const { correo, password } = req.body;
 
   if (!correo || !password) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Por favor ingresa tu correo y contraseña.' 
+    return res.status(400).json({
+      success: false,
+      error: 'Por favor ingresa tu correo y contraseña.'
     });
   }
 
@@ -62,16 +63,16 @@ app.post('/api/login', (req, res) => {
   db.query(sql, [correoLimpio], async (err, results) => {
     if (err) {
       console.error('❌ Error en MySQL al consultar usuario:', err);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Error interno en la base de datos.' 
+      return res.status(500).json({
+        success: false,
+        error: 'Error interno en la base de datos.'
       });
     }
 
     if (!results || results.length === 0) {
-      return res.status(401).json({ 
-        success: false, 
-        error: 'El correo electrónico no está registrado.' 
+      return res.status(401).json({
+        success: false,
+        error: 'El correo electrónico no está registrado.'
       });
     }
 
@@ -81,9 +82,9 @@ app.post('/api/login', (req, res) => {
       const passwordValida = await bcrypt.compare(passwordLimpia, usuario.contrasena);
 
       if (!passwordValida) {
-        return res.status(401).json({ 
-          success: false, 
-          error: 'Contraseña incorrecta.' 
+        return res.status(401).json({
+          success: false,
+          error: 'Contraseña incorrecta.'
         });
       }
 
@@ -159,6 +160,7 @@ app.post('/api/usuarios', async (req, res) => {
 });
 
 // Ruta para solicitar recuperación de contraseña mediante Brevo
+// Ruta para solicitar recuperación de contraseña mediante Brevo
 app.post('/api/forgot-password', async (req, res) => {
   const { correo } = req.body;
 
@@ -186,7 +188,7 @@ app.post('/api/forgot-password', async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://finca-don-litos.vercel.app';
     const enlaceReset = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    // Crear la estructura del correo
+    // Estructura del correo transaccional para Brevo
     const sendSmtpEmail = new SendSmtpEmail();
     sendSmtpEmail.subject = "Recuperación de Contraseña - Finca Don Litos";
     sendSmtpEmail.sender = { "name": "Finca Don Litos", "email": "fincadonlitos1@gmail.com" };
@@ -409,7 +411,7 @@ app.post('/api/admin/crear-usuario', async (req, res) => {
   }
 
   const findAdminSql = 'SELECT * FROM finca_don_litos.usuarios WHERE LOWER(TRIM(correo)) = ? LIMIT 1';
-  
+
   db.query(findAdminSql, [adminCorreo.trim().toLowerCase()], async (err, results) => {
     if (err) {
       return res.status(500).json({ success: false, error: 'Error interno del servidor.' });
@@ -515,25 +517,25 @@ app.get('/api/reservas', (req, res) => {
 // 10. CREAR RESERVA Y REGISTRAR PAGO SIMULADO
 // ==========================================
 app.post('/api/reservas', async (req, res) => {
-  const { 
-    cabana_id, 
-    id_usuario, 
-    nombre, 
-    apellidos, 
-    email, 
-    telefono, 
-    fecha_checkin, 
-    fecha_checkout, 
-    total, 
-    metodo_pago, 
-    comprobante_referencia 
+  const {
+    cabana_id,
+    id_usuario,
+    nombre,
+    apellidos,
+    email,
+    telefono,
+    fecha_checkin,
+    fecha_checkout,
+    total,
+    metodo_pago,
+    comprobante_referencia
   } = req.body;
 
   const nombreLimpio = nombre ? nombre.trim() : '';
   const apellidosLimpios = apellidos ? apellidos.trim() : '';
   const nombreParaCorreo = `${nombreLimpio} ${apellidosLimpios}`.trim();
-  const metodoPagoFinal = metodo_pago || 'SINPE_MOVIL'; 
-  
+  const metodoPagoFinal = metodo_pago || 'SINPE_MOVIL';
+
   const estadoPagoInicial = metodoPagoFinal === 'TARJETA' ? 'aprobado' : 'en_revision';
   const estadoReservaInicial = metodoPagoFinal === 'TARJETA' ? 'pagada' : 'reservada';
 
@@ -544,15 +546,15 @@ app.post('/api/reservas', async (req, res) => {
   `;
 
   db.query(sqlReserva, [
-    cabana_id, 
-    id_usuario || null, 
-    nombreLimpio, 
-    apellidosLimpios, 
-    email, 
-    telefono, 
-    fecha_checkin, 
-    fecha_checkout, 
-    total, 
+    cabana_id,
+    id_usuario || null,
+    nombreLimpio,
+    apellidosLimpios,
+    email,
+    telefono,
+    fecha_checkin,
+    fecha_checkout,
+    total,
     estadoReservaInicial
   ], (err, resultReserva) => {
     if (err) {
@@ -569,9 +571,9 @@ app.post('/api/reservas', async (req, res) => {
     `;
 
     db.query(sqlPago, [
-      idReservaCreada, 
-      metodoPagoFinal, 
-      comprobante_referencia || 'SIN-COMPROBANTE', 
+      idReservaCreada,
+      metodoPagoFinal,
+      comprobante_referencia || 'SIN-COMPROBANTE',
       estadoPagoInicial
     ], async (errPago) => {
       if (errPago) {
@@ -657,7 +659,7 @@ app.put('/api/admin/reservas/:id/estado', async (req, res) => {
 // Ruta para actualizar o registrar el comprobante de pago desde el panel de administración
 app.put('/api/admin/pagos/comprobante', (req, res) => {
   const { id_reserva, comprobante } = req.body;
-  
+
   if (!id_reserva || !comprobante) {
     return res.status(400).json({ success: false, error: 'Faltan datos obligatorios.' });
   }
@@ -718,7 +720,7 @@ app.put('/api/admin/pagos/comprobante', (req, res) => {
 // ==========================================
 app.delete('/api/reservas/:id', (req, res) => {
   const { id } = req.params;
-  
+
   const sql = 'UPDATE finca_don_litos.reservas SET estado = ? WHERE id_reserva = ?';
   db.query(sql, ['cancelada', id], (err) => {
     if (err) {
