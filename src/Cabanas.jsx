@@ -83,6 +83,15 @@ export const Cabanas = ({ setAutenticado }) => {
   const [fechaCheckin, fechaCheckout] = fechasSeleccionadas;
   const [errorFecha, setErrorFecha] = useState('');
 
+
+
+
+  const [mostrarModal, setMostrarModal] = useState(false);
+  const [mensajeModal, setMensajeModal] = useState('');
+
+
+
+
   // Formulario con campos de datos personales, método de pago y simulador de tarjeta
   const [formData, setFormData] = useState({
     nombre: '',
@@ -208,7 +217,8 @@ export const Cabanas = ({ setAutenticado }) => {
       localStorage.setItem('adminUsuario', JSON.stringify(usuarioActualizado));
       setUsuarioLogueado(usuarioActualizado);
       setMostrarModalPerfil(false);
-      alert('¡Perfil actualizado con éxito!');
+      setMensajeModal('¡Perfil actualizado con éxito!');
+      setMostrarModal(true);
     } catch (err) {
       setErrorPerfil(err.message);
     } finally {
@@ -696,7 +706,7 @@ export const Cabanas = ({ setAutenticado }) => {
             );
           })}
         </div>
-
+          
         {/* MODAL AVISO VISITANTE */}
         {mostrarModalAvisoLogin && (
           <div style={styles.modalOverlay} onClick={() => setMostrarModalAvisoLogin(false)}>
@@ -892,6 +902,28 @@ export const Cabanas = ({ setAutenticado }) => {
             </div>
           </div>
         )}
+          {/* ========================================================= */}
+        {/* PUNTO 3: MODAL DE ÉXITO PERSONALIZADO (Reemplaza los alert) */}
+        {/* ========================================================= */}
+        {mostrarModal && (
+          <div style={styles.modalOverlay}>
+            <div style={{ backgroundColor: '#1e293b', color: '#ffffff', borderRadius: '16px', padding: '28px', maxWidth: '380px', width: '90%', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.4)', border: '1px solid #334155' }}>
+              <div style={{ width: '60px', height: '60px', backgroundColor: '#22c55e', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto', boxShadow: '0 0 15px rgba(34, 197, 94, 0.4)' }}>
+                <span style={{ color: '#ffffff', fontSize: '30px', fontWeight: 'bold' }}>✓</span>
+              </div>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '1.5rem', fontWeight: 'bold' }}>¡Éxito!</h3>
+              <p style={{ color: '#cbd5e1', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '24px' }}>{mensajeModal}</p>
+              <button
+                type="button"
+                onClick={() => setMostrarModal(false)}
+                style={{ backgroundColor: '#2e4d25', color: '#ffffff', border: 'none', padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', width: '100%', transition: 'background 0.2s' }}
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        )}
+      
       </div>
 
       <Footer />
