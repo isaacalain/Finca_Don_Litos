@@ -84,6 +84,15 @@ app.post('/api/login', (req, res) => {
         });
       }
 
+      // 🔴 VERIFICACIÓN DE ESTADO DE CUENTA
+      // Bloquea el acceso si el estado es 'deshabilitada' o diferente a 'activa'
+      if (usuario.estado === 'deshabilitada' || usuario.estado !== 'activa') {
+        return res.status(403).json({
+          success: false,
+          error: 'Tu cuenta se encuentra deshabilitada. Ponte en contacto con el administrador.'
+        });
+      }
+
       res.json({
         success: true,
         user: {
