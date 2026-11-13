@@ -14,7 +14,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/reset-password" element={<ResetPassword />} />
-        {/* Redirigir la raíz al login */}
+        {/* Redirigir la raiz al login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* Ruta del Login */}

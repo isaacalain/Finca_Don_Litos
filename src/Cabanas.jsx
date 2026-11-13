@@ -6,7 +6,7 @@ import { isWithinInterval, eachDayOfInterval, isBefore, startOfDay, format } fro
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
 
-// 1. Arreglo estático declarado FUERA del componente para optimización extrema de React y el carrusel
+
 const imagenesPuertoViejo = [
   {
     url: '/puerto1.png',
@@ -33,10 +33,10 @@ export const Cabanas = ({ setAutenticado }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const navigate = useNavigate();
 
-  // Estado para el Carrusel de Puerto Viejo, Limón
+  
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Usuario Logueado o Visitante (Seguro con valor inicial por defecto)
+  // Usuario Logueado o Visitante 
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
     try {
       const guardado = localStorage.getItem('adminUsuario');
@@ -48,7 +48,7 @@ export const Cabanas = ({ setAutenticado }) => {
 
   const [mostrarModalAvisoLogin, setMostrarModalAvisoLogin] = useState(false);
 
-  // Estado para el menú desplegable del perfil y modal de edición
+  // Estado para el menu desplegable del perfil y modal de edición
   const [menuPerfilAbierto, setMenuPerfilAbierto] = useState(false);
   const menuRef = useRef(null);
   const [mostrarModalPerfil, setMostrarModalPerfil] = useState(false);
@@ -60,7 +60,7 @@ export const Cabanas = ({ setAutenticado }) => {
   const [guardandoPerfil, setGuardandoPerfil] = useState(false);
   const [errorPerfil, setErrorPerfil] = useState('');
 
-  // Temporizador para el carrusel de imágenes de Puerto Viejo
+  
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prevSlide) => (prevSlide + 1) % imagenesPuertoViejo.length);
@@ -336,7 +336,7 @@ export const Cabanas = ({ setAutenticado }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 🛡️ Evitar ejecuciones dobles si ya se está procesando
+    
     if (enviandoReserva) return;
 
     if (!fechaCheckin || !fechaCheckout) {
@@ -401,7 +401,7 @@ export const Cabanas = ({ setAutenticado }) => {
       console.error('Error al enviar la reserva:', error);
       alert('Ocurrió un error al conectar con el servidor.');
     } finally {
-      // 🔓 Desbloquea el botón al finalizar la solicitud (éxito o error)
+      
       setEnviandoReserva(false);
     }
   };
@@ -520,7 +520,7 @@ export const Cabanas = ({ setAutenticado }) => {
                 <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '20px 0' }} />
 
                 <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', fontStyle: 'italic' }}>
-                  🔒 Rellena los siguientes campos solo si deseas cambiar tu contraseña:
+                  🔒 Confirma los cambios con tu contraseña:
                 </p>
 
                 <div style={{ marginBottom: '15px' }}>
@@ -623,7 +623,7 @@ export const Cabanas = ({ setAutenticado }) => {
 
         {mensaje && <div style={styles.alertSuccess}>{mensaje}</div>}
 
-        {/* CARRUSEL DE PUERTO VIEJO, LIMÓN */}
+        {/* CARRUSEL DE PUERTO VIEJO*/}
         {imagenesPuertoViejo && imagenesPuertoViejo.length > 0 && (
           <div style={{ width: '100%', maxWidth: '900px', margin: '0 auto 40px auto', position: 'relative', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
             <div style={{ width: '100%', height: '320px', position: 'relative', backgroundColor: '#1a202c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -784,7 +784,7 @@ export const Cabanas = ({ setAutenticado }) => {
                 <label style={styles.label}>Teléfono:</label>
                 <input type="tel" name="telefono" required style={styles.input} value={formData.telefono} onChange={handleChange} />
 
-                {/* SECCIÓN DEL SIMULADOR DE PAGO */}
+                {/* SECCION DEL SIMULADOR DE PAGO */}
                 <label style={styles.label}>Método de Pago:</label>
                 <select
                   name="metodo_pago"
@@ -856,7 +856,7 @@ export const Cabanas = ({ setAutenticado }) => {
                     </div>
                   </div>
                 )}
-                {/* FIN DE SECCIÓN DE PAGO */}
+                {/* FIN DE SECCION DE PAGO */}
 
                 <label style={styles.label}>Selecciona tu rango de hospedaje:</label>
                 <div style={{ marginBottom: '10px', textAlign: 'center' }}>
@@ -902,9 +902,9 @@ export const Cabanas = ({ setAutenticado }) => {
             </div>
           </div>
         )}
-          {/* ========================================================= */}
-        {/* PUNTO 3: MODAL DE ÉXITO PERSONALIZADO (Reemplaza los alert) */}
-        {/* ========================================================= */}
+          
+        {/* PUNTO 3: MODAL DE EXITO PERSONALIZADO*/}
+        
         {mostrarModal && (
           <div style={styles.modalOverlay}>
             <div style={{ backgroundColor: '#1e293b', color: '#ffffff', borderRadius: '16px', padding: '28px', maxWidth: '380px', width: '90%', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.4)', border: '1px solid #334155' }}>

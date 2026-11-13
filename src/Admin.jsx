@@ -5,7 +5,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { eachDayOfInterval, isWithinInterval, isBefore, startOfDay, format } from 'date-fns';
 
 export default function Admin({ setAutenticado }) {
-  const [tabActiva, setTabActiva] = useState('calendario'); // 'calendario', 'lista', 'usuarios'
+  const [tabActiva, setTabActiva] = useState('calendario'); 
   const [reservas, setReservas] = useState([]);
   const [cabanas, setCabanas] = useState([]);
   const [usuariosList, setUsuariosList] = useState([]);
@@ -72,9 +72,9 @@ export default function Admin({ setAutenticado }) {
   const [guardandoUsuario, setGuardandoUsuario] = useState(false);
   const [mensajeUserError, setMensajeUserError] = useState('');
 
-  // ==========================================
+ 
   // ESTADOS PARA ACCIONES SEGURAS DE USUARIO
-  // ==========================================
+ 
   const [modalAccionUsuario, setModalAccionUsuario] = useState(false);
   const [usuarioObjetivo, setUsuarioObjetivo] = useState(null);
   const [nuevoEstadoObjetivo, setNuevoEstadoObjetivo] = useState('');
@@ -82,9 +82,9 @@ export default function Admin({ setAutenticado }) {
   const [errorAccionUsuario, setErrorAccionUsuario] = useState('');
   const [procesandoAccion, setProcesandoAccion] = useState(false);
 
-  // ==========================================
+  
   // ESTADOS PARA CREAR RESERVA DESDE ADMIN CON PASSWORD
-  // ==========================================
+  
   const [mostrarModalCrearReserva, setMostrarModalCrearReserva] = useState(false);
   const [reservaCabanaId, setReservaCabanaId] = useState('');
   const [reservaFechasOcupadas, setReservaFechasOcupadas] = useState([]);
@@ -192,7 +192,7 @@ export default function Admin({ setAutenticado }) {
       .catch((err) => console.error('Error al cargar fechas ocupadas en Admin:', err));
   }, [reservaCabanaId]);
 
-  // Función para pintar los días ocupados de rojo en el calendario del admin
+  // Funcion para pintar los días ocupados de rojo en el calendario del admin
   const getModalDayClassName = (date) => {
     if (isBefore(date, startOfDay(new Date()))) {
       return 'dia-pasado';
@@ -501,7 +501,7 @@ export default function Admin({ setAutenticado }) {
       const data = await response.json();
       if (data.success) {
         mostrarAlertaExito('Comprobante registrado con éxito.');
-        setModoEdicionPago(false); // 👈 ¡Aquí mismo lo agregas!
+        setModoEdicionPago(false); 
         setModalPagoDetalle(null);
         setNuevoComprobanteAdmin('');
         obtenerDatos();
@@ -813,7 +813,7 @@ export default function Admin({ setAutenticado }) {
             🔄 Actualizar
           </button>
 
-          {/* Menú Desplegable de Perfil */}
+          {/* Menu Desplegable de Perfil */}
           <div ref={menuRef} style={{ position: 'relative' }}>
             <div
               onClick={() => setMenuPerfilAbierto(!menuPerfilAbierto)}
@@ -1229,7 +1229,7 @@ export default function Admin({ setAutenticado }) {
             </div>
           )}
 
-          {/* PESTAÑA 3: GESTIÓN DE USUARIOS */}
+          {/* PESTAÑA 3: GESTION DE USUARIOS */}
           {tabActiva === 'usuarios' && (
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h3 style={{ marginTop: 0, color: '#2e4d25' }}>Gestión de Usuarios del Sistema</h3>
@@ -1369,7 +1369,7 @@ export default function Admin({ setAutenticado }) {
         </>
       )}
 
-      {/* MODAL DE ÉXITO PERSONALIZADO */}
+      {/* MODAL DE EXITO PERSONALIZADO */}
       {modalExitoAbierto && (
         <div
           style={{
@@ -1469,7 +1469,7 @@ export default function Admin({ setAutenticado }) {
         </div>
       )}
 
-      {/* MODAL DE ACCIONES SEGURAS PARA USUARIOS (Estado y Eliminar) */}
+      {/* MODAL DE ACCIONES SEGURAS PARA USUARIOS*/}
       {modalAccionUsuario && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', width: '100%', maxWidth: '400px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
@@ -1741,7 +1741,7 @@ export default function Admin({ setAutenticado }) {
               <p style={{ margin: '5px 0' }}><strong>Total:</strong> ₡{Number(modalPagoDetalle.total || 0).toLocaleString('es-CR')}</p>
             </div>
 
-            {/* CASO 1: SI YA EXISTE UN COMPROBANTE Y NO ESTÁ EDITANDO */}
+            {/* CASO 1: SI YA EXISTE UN COMPROBANTE Y NO ESTA EDITANDO */}
             {modalPagoDetalle.comprobante_referencia && !modoEdicionPago ? (
               <div style={{ textAlign: 'center', margin: '20px 0' }}>
                 <div style={{ backgroundColor: '#e6f4ea', padding: '15px', borderRadius: '8px', border: '1px solid #c6f6d5', marginBottom: '15px' }}>
@@ -1774,7 +1774,7 @@ export default function Admin({ setAutenticado }) {
                 </div>
               </div>
             ) : (
-              /* CASO 2: SI NO HAY COMPROBANTE O PRESIONÓ EDITAR */
+              /* CASO 2: SI NO HAY COMPROBANTE O PRESIONO EDITAR */
               <div>
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>

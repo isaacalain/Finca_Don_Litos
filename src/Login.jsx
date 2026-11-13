@@ -24,7 +24,7 @@ export default function Login({ setAutenticado }) {
   const [forgotError, setForgotError] = useState('');
   const [forgotCargando, setForgotCargando] = useState(false);
 
-  // Manejar el Login (Verifica contra la API o contra los usuarios registrados)
+  // Manejar el Login 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -200,22 +200,22 @@ export default function Login({ setAutenticado }) {
               </button>
             </div>
 
-            {/* Contenedor relativo para alinear el input y el botón del ojito */}
+            {/* Contenedor relativo para alinear el input */}
             <div style={{ position: 'relative', width: '100%' }}>
               <input
-                type={mostrarPassword ? 'text' : 'password'} // Cambia dinámicamente según el estado
+                type={mostrarPassword ? 'text' : 'password'} 
                 required
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={{
                   ...styles.input,
-                  paddingRight: '40px', // Espacio para que el texto no quede debajo del ojito
+                  paddingRight: '40px', 
                   boxSizing: 'border-box'
                 }}
               />
 
-              {/* Botón del ojito */}
+              {/* Boton del ojo */}
               <button
                 type="button"
                 onClick={() => setMostrarPassword(!mostrarPassword)}
@@ -270,7 +270,7 @@ export default function Login({ setAutenticado }) {
             }}
             style={styles.btnRegister}
           >
-            📝 Crear una Cuenta
+             Crear una Cuenta
           </button>
         </div>
       </div>

@@ -28,7 +28,7 @@ const db = mysql.createPool({
   queueLimit: 0
 });
 
-// Probar conexión al iniciar el servidor
+//conexión al iniciar el servidor
 db.getConnection((err, connection) => {
   if (err) {
     console.error('❌ Error en MySQL al conectar:', err);
@@ -38,9 +38,9 @@ db.getConnection((err, connection) => {
   }
 });
 
-// ==========================================
+
 // 1. ENDPOINT DE LOGIN
-// ==========================================
+
 app.post('/api/login', (req, res) => {
   const { correo, password } = req.body;
 
@@ -58,7 +58,7 @@ app.post('/api/login', (req, res) => {
 
   db.query(sql, [correoLimpio], async (err, results) => {
     if (err) {
-      console.error('❌ Error en MySQL al consultar usuario:', err);
+      console.error(' Error en MySQL al consultar usuario:', err);
       return res.status(500).json({
         success: false,
         error: 'Error interno en la base de datos.'
@@ -84,8 +84,8 @@ app.post('/api/login', (req, res) => {
         });
       }
 
-      // 🔴 VERIFICACIÓN DE ESTADO DE CUENTA
-      // Bloquea el acceso si el estado es 'deshabilitada' o diferente a 'activa'
+      // VERIFICACIÓN DE ESTADO DE CUENTA
+      
       if (usuario.estado === 'deshabilitada' || usuario.estado !== 'activa') {
         return res.status(403).json({
           success: false,
@@ -111,9 +111,9 @@ app.post('/api/login', (req, res) => {
   });
 });
 
-// ==========================================
-// 2. ENDPOINT DE REGISTRO PÚBLICO
-// ==========================================
+
+// 2. ENDPOINT DE REGISTRO PUBLICO
+
 app.post('/api/usuarios', async (req, res) => {
   const { nombre, apellidos, correo, password, rol } = req.body;
 
@@ -147,7 +147,7 @@ app.post('/api/usuarios', async (req, res) => {
       const insertSql = 'INSERT INTO finca_don_litos.usuarios (nombre, apellidos, correo, contrasena, rol, estado) VALUES (?, ?, ?, ?, ?, ?)';
       db.query(insertSql, [nombre.trim(), apellidos ? apellidos.trim() : '', correoLimpio, hashedPassword, rolFinal, estadoInicial], (errInsert, result) => {
         if (errInsert) {
-          console.error("❌ Error al insertar usuario desde registro:", errInsert);
+          console.error(" Error al insertar usuario desde registro:", errInsert);
           return res.status(500).json({ success: false, error: 'Error al registrar el usuario.' });
         }
 
@@ -165,7 +165,7 @@ app.post('/api/usuarios', async (req, res) => {
 });
 
 // Ruta para solicitar recuperación de contraseña mediante Brevo
-// Ruta para solicitar recuperación de contraseña mediante la API HTTP de Brevo
+
 app.post('/api/forgot-password', async (req, res) => {
   const { correo } = req.body;
 
@@ -268,9 +268,9 @@ app.post('/api/reset-password', async (req, res) => {
   }
 });
 
-// ==========================================
+
 // 3. OBTENER LISTA DE USUARIOS
-// ==========================================
+
 app.get('/api/usuarios', (req, res) => {
   const sql = 'SELECT id_usuario, nombre, apellidos, correo, rol, estado, creado_en FROM usuarios ORDER BY id_usuario DESC';
   db.query(sql, (err, results) => {
@@ -282,9 +282,9 @@ app.get('/api/usuarios', (req, res) => {
   });
 });
 
-// ==========================================
+
 // 4. ELIMINAR USUARIO
-// ==========================================
+
 app.delete('/api/usuarios/:id', async (req, res) => {
   const { id } = req.params;
   const { adminId, adminCorreo, adminPassword } = req.body;
@@ -320,9 +320,9 @@ app.delete('/api/usuarios/:id', async (req, res) => {
   });
 });
 
-// ==========================================
+
 // 4.1. CAMBIAR ESTADO DE USUARIO
-// ==========================================
+
 app.put('/api/usuarios/:id/estado', async (req, res) => {
   const { id } = req.params;
   const { nuevoEstado, adminId, adminCorreo, adminPassword } = req.body;
@@ -358,9 +358,9 @@ app.put('/api/usuarios/:id/estado', async (req, res) => {
   });
 });
 
-// ==========================================
+
 // 5. ACTUALIZAR PERFIL
-// ==========================================
+
 app.put('/api/perfil', async (req, res) => {
   const { id_usuario, nombre, apellidos, correo, passwordActual, nuevaPassword } = req.body;
 
@@ -414,9 +414,9 @@ app.put('/api/perfil', async (req, res) => {
   });
 });
 
-// ==========================================
+
 // 6. CREAR USUARIO DESDE ADMIN
-// ==========================================
+
 app.post('/api/admin/crear-usuario', async (req, res) => {
   const { adminCorreo, adminPassword, nuevoNombre, nuevoApellido, nuevoCorreo, nuevaPassword } = req.body;
 
@@ -461,9 +461,9 @@ app.post('/api/admin/crear-usuario', async (req, res) => {
   });
 });
 
-// ==========================================
+
 // 7. OBTENER CABAÑAS
-// ==========================================
+
 app.get('/api/cabanas', (req, res) => {
   const sql = 'SELECT * FROM bungalows';
   db.query(sql, (err, results) => {
@@ -474,9 +474,9 @@ app.get('/api/cabanas', (req, res) => {
   });
 });
 
-// ==========================================
+
 // OBTENER FECHAS OCUPADAS POR BUNGALOW
-// ==========================================
+
 app.get('/api/reservas/ocupadas/:id', (req, res) => {
   const { id } = req.params;
   const sql = `
@@ -496,9 +496,9 @@ app.get('/api/reservas/ocupadas/:id', (req, res) => {
   });
 });
 
-// ==========================================
+
 // 9. OBTENER TODAS LAS RESERVAS CON DETALLES DE PAGO
-// ==========================================
+
 app.get('/api/reservas', (req, res) => {
   const sql = `
     SELECT 
@@ -531,9 +531,9 @@ app.get('/api/reservas', (req, res) => {
   });
 });
 
-// ==========================================
+
 // 10. CREAR RESERVA Y REGISTRAR PAGO SIMULADO
-// ==========================================
+
 app.post('/api/reservas', async (req, res) => {
   const {
     cabana_id,
@@ -557,7 +557,7 @@ app.post('/api/reservas', async (req, res) => {
   const estadoPagoInicial = metodoPagoFinal === 'TARJETA' ? 'aprobado' : 'en_revision';
   const estadoReservaInicial = metodoPagoFinal === 'TARJETA' ? 'pagada' : 'reservada';
 
-  // 1. Insertar la reserva principal guardando nombre y apellidos por separado
+  
   const sqlReserva = `
     INSERT INTO reservas (id_bungalow, id_usuario, nombre, apellidos, email, telefono, fecha_inicio, fecha_fin, monto_total, estado)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -576,13 +576,13 @@ app.post('/api/reservas', async (req, res) => {
     estadoReservaInicial
   ], (err, resultReserva) => {
     if (err) {
-      console.error("❌ Error al guardar reserva:", err);
+      console.error(" Error al guardar reserva:", err);
       return res.status(500).json({ success: false, error: 'Error al guardar la reserva.' });
     }
 
     const idReservaCreada = resultReserva.insertId;
 
-    // 2. Insertar el registro financiero en la tabla 'pagos'
+    // 2. Insertar el registro financiero 
     const sqlPago = `
       INSERT INTO pagos (id_reserva, metodo_pago, comprobante_url, estado_pago)
       VALUES (?, ?, ?, ?)
@@ -598,7 +598,7 @@ app.post('/api/reservas', async (req, res) => {
         console.error('⚠️ Error al registrar el pago en la tabla pagos:', errPago);
       }
 
-      // 3. Enviar correo electrónico de confirmación mediante Brevo (API HTTP)
+      // 3. Enviar correo electrónico de confirmación 
       try {
         if (email) {
           const responseBrevo = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -656,9 +656,9 @@ app.post('/api/reservas', async (req, res) => {
   });
 });
 
-// ==========================================
+
 // 11. ACTUALIZAR ESTADO DE RESERVA Y SINCRONIZAR PAGO
-// ==========================================
+
 app.put('/api/admin/reservas/:id/estado', async (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
@@ -703,31 +703,31 @@ app.put('/api/admin/pagos/comprobante', (req, res) => {
   // 1. Verificamos si ya existe un registro de pago para esta reserva
   db.query('SELECT id_pago FROM finca_don_litos.pagos WHERE id_reserva = ?', [id_reserva], (err, pagosExistentes) => {
     if (err) {
-      console.error('❌ Error al buscar el pago:', err);
+      console.error('Error al buscar el pago:', err);
       return res.status(500).json({ success: false, error: 'Error en el servidor al buscar el pago.' });
     }
 
     if (pagosExistentes.length > 0) {
-      // Si ya existe, lo actualizamos usando parámetros seguros (?)
+      // Si ya existe, lo actualizamos usando parámetros seguros 
       db.query(
         'UPDATE finca_don_litos.pagos SET comprobante_url = ?, estado_pago = ? WHERE id_reserva = ?',
         [comprobante.trim(), 'aprobado', id_reserva],
         (errUpdate) => {
           if (errUpdate) {
-            console.error('❌ Error al actualizar el pago:', errUpdate);
+            console.error(' Error al actualizar el pago:', errUpdate);
             return res.status(500).json({ success: false, error: 'Error al actualizar el comprobante.' });
           }
           actualizarReservaYResponder();
         }
       );
     } else {
-      // Si no existe, creamos el registro de pago automáticamente con parámetros seguros (?)
+      // Si no existe, creamos el registro de pago automáticamente con parámetros seguros 
       db.query(
         'INSERT INTO finca_don_litos.pagos (id_reserva, metodo_pago, comprobante_url, estado_pago, fecha_pago) VALUES (?, ?, ?, ?, NOW())',
         [id_reserva, 'SINPE_MOVIL', comprobante.trim(), 'aprobado'],
         (errInsert) => {
           if (errInsert) {
-            console.error('❌ Error al insertar el pago:', errInsert);
+            console.error(' Error al insertar el pago:', errInsert);
             return res.status(500).json({ success: false, error: 'Error al registrar el comprobante.' });
           }
           actualizarReservaYResponder();
@@ -743,7 +743,7 @@ app.put('/api/admin/pagos/comprobante', (req, res) => {
       ['pagada', id_reserva],
       (errReserva) => {
         if (errReserva) {
-          console.error('❌ Error al actualizar el estado de la reserva:', errReserva);
+          console.error(' Error al actualizar el estado de la reserva:', errReserva);
         }
         res.json({ success: true, message: 'Comprobante registrado y pago aprobado correctamente.' });
       }
@@ -751,9 +751,9 @@ app.put('/api/admin/pagos/comprobante', (req, res) => {
   }
 });
 
-// ==========================================
+
 // 12. CANCELAR / ELIMINAR RESERVA
-// ==========================================
+
 app.delete('/api/reservas/:id', (req, res) => {
   const { id } = req.params;
 
