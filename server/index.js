@@ -9,11 +9,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-
-
-
-
-
 const db = mysql.createPool({
   host: 'mysql-313f4314-isaacalain5-d93c.l.aivencloud.com',
   port: 18277,
@@ -193,7 +188,6 @@ app.post('/api/forgot-password', async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://finca-don-litos.vercel.app';
     const enlaceReset = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    // Llamada directa HTTP a la API de Brevo
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -233,6 +227,7 @@ app.post('/api/forgot-password', async (req, res) => {
     res.status(500).json({ success: false, error: 'Error en el servidor al procesar la solicitud.' });
   }
 });
+
 // Ruta para restablecer la contraseña usando el token
 app.post('/api/reset-password', async (req, res) => {
   const { token, nuevaPassword } = req.body;
@@ -475,6 +470,31 @@ app.get('/api/cabanas', (req, res) => {
 });
 
 
+// 8. ENDPOINT: ACTUALIZAR PRECIO DE CABAÑA (Temporada Alta / Admin)
+app.put('/api/cabanas/:id/precio', async (req, res) => {
+  const { id } = req.params;
+  const { precio_noche } = req.body;
+
+  if (precio_noche === undefined || isNaN(precio_noche)) {
+    return res.status(400).json({ success: false, error: 'El precio por noche es obligatorio y debe ser numérico.' });
+  }
+
+  const sql = 'UPDATE bungalows SET precio_noche = ? WHERE id_bungalow = ?';
+  db.query(sql, [precio_noche, id], (err, result) => {
+    if (err) {
+      console.error('Error al actualizar precio de cabaña:', err);
+      return res.status(500).json({ success: false, error: 'Error al actualizar el precio en la base de datos.' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, error: 'Cabaña no encontrada.' });
+    }
+
+    res.json({ success: true, message: 'Precio actualizado correctamente' });
+  });
+});
+
+
 // OBTENER FECHAS OCUPADAS POR BUNGALOW
 
 app.get('/api/reservas/ocupadas/:id', (req, res) => {
@@ -530,6 +550,7 @@ app.get('/api/reservas', (req, res) => {
     res.json(results);
   });
 });
+
 
 
 // 10. CREAR RESERVA Y REGISTRAR PAGO SIMULADO

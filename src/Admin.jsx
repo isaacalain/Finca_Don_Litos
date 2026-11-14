@@ -18,6 +18,12 @@ export default function Admin({ setAutenticado }) {
   const [nuevoComprobanteAdmin, setNuevoComprobanteAdmin] = useState('');
   const [guardandoComprobante, setGuardandoComprobante] = useState(false);
   const [modoEdicionPago, setModoEdicionPago] = useState(false);
+
+  // Estados para editar el precio de las cabañas (Temporada Alta)
+  const [editandoPrecioCabanaId, setEditandoPrecioCabanaId] = useState(null);
+  const [nuevoPrecioCabanaVal, setNuevoPrecioCabanaVal] = useState('');
+  const [guardandoPrecioCabana, setGuardandoPrecioCabana] = useState(false);
+
   // Datos del Usuario Administrador Logueado
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
     return JSON.parse(localStorage.getItem('adminUsuario') || '{}');
@@ -72,9 +78,10 @@ export default function Admin({ setAutenticado }) {
   const [guardandoUsuario, setGuardandoUsuario] = useState(false);
   const [mensajeUserError, setMensajeUserError] = useState('');
 
+  // Estado para precio manual negociado en reserva manual
+  const [precioManualAdmin, setPrecioManualAdmin] = useState('');
  
   // ESTADOS PARA ACCIONES SEGURAS DE USUARIO
- 
   const [modalAccionUsuario, setModalAccionUsuario] = useState(false);
   const [usuarioObjetivo, setUsuarioObjetivo] = useState(null);
   const [nuevoEstadoObjetivo, setNuevoEstadoObjetivo] = useState('');
@@ -82,9 +89,7 @@ export default function Admin({ setAutenticado }) {
   const [errorAccionUsuario, setErrorAccionUsuario] = useState('');
   const [procesandoAccion, setProcesandoAccion] = useState(false);
 
-  
   // ESTADOS PARA CREAR RESERVA DESDE ADMIN CON PASSWORD
-  
   const [mostrarModalCrearReserva, setMostrarModalCrearReserva] = useState(false);
   const [reservaCabanaId, setReservaCabanaId] = useState('');
   const [reservaFechasOcupadas, setReservaFechasOcupadas] = useState([]);
@@ -192,7 +197,6 @@ export default function Admin({ setAutenticado }) {
       .catch((err) => console.error('Error al cargar fechas ocupadas en Admin:', err));
   }, [reservaCabanaId]);
 
-  // Funcion para pintar los días ocupados de rojo en el calendario del admin
   const getModalDayClassName = (date) => {
     if (isBefore(date, startOfDay(new Date()))) {
       return 'dia-pasado';
@@ -229,7 +233,11 @@ export default function Admin({ setAutenticado }) {
     setReservaFechasSeleccionadas(update);
   };
 
+  // Cálculo de total con soporte para precio manual negociado
   const calcularTotalAdminReserva = () => {
+    if (precioManualAdmin !== '' && !isNaN(precioManualAdmin)) {
+      return Number(precioManualAdmin);
+    }
     if (!reservaCheckin || !reservaCheckout || !reservaCabanaId) return 0;
     const cabanaSeleccionada = cabanas.find(c => c.id_bungalow === Number(reservaCabanaId));
     if (!cabanaSeleccionada) return 0;
@@ -239,9 +247,42 @@ export default function Admin({ setAutenticado }) {
     return dias > 0 ? dias * Number(cabanaSeleccionada.precio_noche) : 0;
   };
 
+  // Función para guardar el nuevo precio de una cabaña (Temporada Alta)
+  const handleGuardarPrecioCabana = async (idBungalow) => {
+    if (!nuevoPrecioCabanaVal || isNaN(nuevoPrecioCabanaVal) || Number(nuevoPrecioCabanaVal) < 0) {
+      mostrarAlertaExito('Por favor ingresa un precio válido.');
+      return;
+    }
+
+    setGuardandoPrecioCabana(true);
+    try {
+      const response = await fetch(`https://finca-don-litos.onrender.com/api/cabanas/${idBungalow}/precio`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ precio_noche: Number(nuevoPrecioCabanaVal) })
+      });
+      const data = await response.json();
+
+      if (data.success || response.ok) {
+        mostrarAlertaExito('Precio de la cabaña actualizado con éxito.');
+        setEditandoPrecioCabanaId(null);
+        setNuevoPrecioCabanaVal('');
+        obtenerDatos();
+      } else {
+        mostrarAlertaExito(data.error || 'Error al actualizar el precio.');
+      }
+    } catch (err) {
+      console.error(err);
+      mostrarAlertaExito('Error de conexión al actualizar el precio.');
+    } finally {
+      setGuardandoPrecioCabana(false);
+    }
+  };
+
   const abrirModalCrearReserva = () => {
     setFormReservaData({ nombre: '', apellidos: '', email: '', telefono: '' });
     setReservaFechasSeleccionadas([null, null]);
+    setPrecioManualAdmin('');
     setAdminPasswordReserva('');
     setErrorReservaAdmin('');
     setReservaErrorFecha('');
@@ -264,7 +305,7 @@ export default function Admin({ setAutenticado }) {
 
     const total = calcularTotalAdminReserva();
     if (total <= 0) {
-      mostrarAlertaExito('La fecha de check-out debe ser posterior a la fecha de check-in.');
+      mostrarAlertaExito('La fecha de check-out debe ser posterior a la fecha de check-in o el total debe ser mayor a 0.');
       return;
     }
 
@@ -949,6 +990,21 @@ export default function Admin({ setAutenticado }) {
         </button>
 
         <button
+          onClick={() => setTabActiva('cabanas')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '6px',
+            border: 'none',
+            backgroundColor: tabActiva === 'cabanas' ? '#2e4d25' : '#e2e8f0',
+            color: tabActiva === 'cabanas' ? 'white' : '#333',
+            fontWeight: 'bold',
+            cursor: 'pointer'
+          }}
+        >
+          🏡 Gestión de Cabañas y Precios
+        </button>
+
+        <button
           onClick={() => setTabActiva('usuarios')}
           style={{
             padding: '10px 20px',
@@ -1226,6 +1282,74 @@ export default function Admin({ setAutenticado }) {
                   </table>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* PESTAÑA NUEVA: GESTIÓN DE CABAÑAS Y PRECIOS */}
+          {tabActiva === 'cabanas' && (
+            <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h3 style={{ marginTop: 0, color: '#2e4d25' }}>🏡 Gestión de Precios de Cabañas (Temporada Alta / Regular)</h3>
+              <p style={{ color: '#555', fontSize: '14px', marginBottom: '20px' }}>
+                Actualiza el precio por noche de cada cabaña. Los cambios se reflejarán inmediatamente en la vista pública para los clientes.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                {cabanas.map((c) => (
+                  <div key={c.id_bungalow} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', backgroundColor: '#fcfcfc', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 10px 0', color: '#2e4d25', fontSize: '18px' }}>{c.nombre}</h4>
+                      <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}>{c.descripcion}</p>
+                      <div style={{ fontSize: '14px', marginBottom: '15px' }}>
+                        <strong>Precio actual: </strong>
+                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1b4332' }}>${c.precio_noche} / noche</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      {editandoPrecioCabanaId === c.id_bungalow ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
+                          <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Nuevo Precio ($):</label>
+                          <input
+                            type="number"
+                            value={nuevoPrecioCabanaVal}
+                            onChange={(e) => setNuevoPrecioCabanaVal(e.target.value)}
+                            placeholder="Ej. 30000"
+                            style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '14px' }}
+                          />
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              onClick={() => handleGuardarPrecioCabana(c.id_bungalow)}
+                              disabled={guardandoPrecioCabana}
+                              style={{ flex: 1, backgroundColor: '#28a745', color: 'white', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                            >
+                              {guardandoPrecioCabana ? 'Guardando...' : 'Guardar'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditandoPrecioCabanaId(null);
+                                setNuevoPrecioCabanaVal('');
+                              }}
+                              style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer' }}
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setEditandoPrecioCabanaId(c.id_bungalow);
+                            setNuevoPrecioCabanaVal(c.precio_noche);
+                          }}
+                          style={{ width: '100%', backgroundColor: '#17a2b8', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                        >
+                          ✏️ Editar Precio
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -1601,9 +1725,29 @@ export default function Admin({ setAutenticado }) {
                 {reservaErrorFecha && <p style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px' }}>{reservaErrorFecha}</p>}
               </div>
 
-              <div style={{ backgroundColor: '#f8f9fa', padding: '10px', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '14px', fontWeight: 'bold' }}>Total Estimado:</span>
-                <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#2e4d25' }}>${calcularTotalAdminReserva()}</span>
+              {/* INPUT DE PRECIO EDITABLE (NEGOCIACIÓN) */}
+              <div style={{ backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#2e4d25' }}>
+                  Total de la Reserva (Editable si hubo negociación):
+                </label>
+                <input
+                  type="number"
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #ccc',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    color: '#2c3e50',
+                    backgroundColor: '#fff'
+                  }}
+                  value={precioManualAdmin}
+                  onChange={(e) => setPrecioManualAdmin(e.target.value)}
+                  placeholder={`Sugerido automático: $${calcularTotalAdminReserva()}`}
+                />
+                <small style={{ color: '#666', fontSize: '11px' }}>
+                  Si se deja vacío, se calcula automáticamente según las noches y tarifa de la cabaña.
+                </small>
               </div>
 
               <div>
@@ -1738,18 +1882,17 @@ export default function Admin({ setAutenticado }) {
               <p style={{ margin: '5px 0' }}><strong>Reserva ID:</strong> #{modalPagoDetalle.id}</p>
               <p style={{ margin: '5px 0' }}><strong>Cliente:</strong> {modalPagoDetalle.nombre_cliente}</p>
               <p style={{ margin: '5px 0' }}><strong>Cabaña:</strong> {modalPagoDetalle.cabana_nombre}</p>
-              <p style={{ margin: '5px 0' }}><strong>Total:</strong> ₡{Number(modalPagoDetalle.total || 0).toLocaleString('es-CR')}</p>
+              <p style={{ margin: '5px 0' }}><strong>Total:</strong> ${modalPagoDetalle.total}</p>
             </div>
 
-            {/* CASO 1: SI YA EXISTE UN COMPROBANTE Y NO ESTA EDITANDO */}
-            {modalPagoDetalle.comprobante_referencia && !modoEdicionPago ? (
+            {modalPagoDetalle.comprobante_pago && !modoEdicionPago ? (
               <div style={{ textAlign: 'center', margin: '20px 0' }}>
                 <div style={{ backgroundColor: '#e6f4ea', padding: '15px', borderRadius: '8px', border: '1px solid #c6f6d5', marginBottom: '15px' }}>
                   <small style={{ color: '#2e4d25', display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>
                     Comprobante / Referencia Registrada:
                   </small>
                   <span style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#1b4332', letterSpacing: '0.5px' }}>
-                    {modalPagoDetalle.comprobante_referencia}
+                    {modalPagoDetalle.comprobante_pago}
                   </span>
                 </div>
 
@@ -1757,7 +1900,7 @@ export default function Admin({ setAutenticado }) {
                   <button
                     type="button"
                     onClick={() => {
-                      setNuevoComprobanteAdmin(modalPagoDetalle.comprobante_referencia);
+                      setNuevoComprobanteAdmin(modalPagoDetalle.comprobante_pago);
                       setModoEdicionPago(true);
                     }}
                     style={{ backgroundColor: '#17a2b8', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
@@ -1766,7 +1909,10 @@ export default function Admin({ setAutenticado }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setModalPagoDetalle(null)}
+                    onClick={() => {
+                      setModalPagoDetalle(null);
+                      setModoEdicionPago(false);
+                    }}
                     style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
                   >
                     Cerrar
@@ -1774,44 +1920,35 @@ export default function Admin({ setAutenticado }) {
                 </div>
               </div>
             ) : (
-              /* CASO 2: SI NO HAY COMPROBANTE O PRESIONO EDITAR */
               <div>
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                    {modalPagoDetalle.comprobante_referencia ? 'Nuevo Número de Comprobante:' : 'Número de Comprobante / Referencia:'}
+                    Número de Comprobante / Referencia:
                   </label>
                   <input
                     type="text"
                     value={nuevoComprobanteAdmin}
                     onChange={(e) => setNuevoComprobanteAdmin(e.target.value)}
-                    placeholder="Ej. SINPE-123456 o Ref Bancaria"
+                    placeholder="Ej. SINPE-123456"
                     style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                   />
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '15px' }}>
-                  {modalPagoDetalle.comprobante_referencia ? (
-                    <button
-                      type="button"
-                      onClick={() => setModoEdicionPago(false)}
-                      style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer' }}
-                    >
-                      Cancelar Edición
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setModalPagoDetalle(null)}
-                      style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer' }}
-                    >
-                      Cerrar
-                    </button>
-                  )}
-
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                   <button
                     type="button"
-                    disabled={guardandoComprobante}
+                    onClick={() => {
+                      setModalPagoDetalle(null);
+                      setModoEdicionPago(false);
+                    }}
+                    style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleGuardarComprobanteAdmin(modalPagoDetalle.id)}
+                    disabled={guardandoComprobante}
                     style={{ backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
                   >
                     {guardandoComprobante ? 'Guardando...' : 'Guardar Comprobante'}
@@ -1819,11 +1956,9 @@ export default function Admin({ setAutenticado }) {
                 </div>
               </div>
             )}
-
           </div>
         </div>
       )}
-
     </div>
   );
 }
