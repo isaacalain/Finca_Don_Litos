@@ -80,7 +80,7 @@ app.post('/api/login', (req, res) => {
       }
 
       // VERIFICACIÓN DE ESTADO DE CUENTA
-      
+
       if (usuario.estado === 'deshabilitada' || usuario.estado !== 'activa') {
         return res.status(403).json({
           success: false,
@@ -170,7 +170,7 @@ app.post('/api/forgot-password', async (req, res) => {
 
   try {
     const [usuarios] = await db.promise().query('SELECT * FROM usuarios WHERE correo = ?', [correo]);
-    
+
     if (usuarios.length === 0) {
       return res.status(404).json({ success: false, error: 'No existe una cuenta registrada con este correo.' });
     }
@@ -534,7 +534,21 @@ app.get('/api/reservas', (req, res) => {
       r.monto_total AS total,
       r.estado,
       COALESCE(p.metodo_pago, 'SINPE_MOVIL') AS metodo_pago,
-      COALESCE(p.comprobante_url, 'N/A') AS comprobante_referencia,
+      CASE 
+        WHEN p.comprobante_url IS NULL OR TRIM(p.comprobante_url) IN ('', 'N/A', 'SIN-COMPROBANTE') 
+        THEN '' 
+        ELSE TRIM(p.comprobante_url) 
+      END AS comprobante_url,
+      CASE 
+        WHEN p.comprobante_url IS NULL OR TRIM(p.comprobante_url) IN ('', 'N/A', 'SIN-COMPROBANTE') 
+        THEN '' 
+        ELSE TRIM(p.comprobante_url) 
+      END AS comprobante_pago,
+      CASE 
+        WHEN p.comprobante_url IS NULL OR TRIM(p.comprobante_url) IN ('', 'N/A', 'SIN-COMPROBANTE') 
+        THEN 'N/A' 
+        ELSE TRIM(p.comprobante_url) 
+      END AS comprobante_referencia,
       COALESCE(p.estado_pago, 'en_revision') AS estado_pago
     FROM finca_don_litos.reservas r
     JOIN finca_don_litos.bungalows b ON r.id_bungalow = b.id_bungalow
@@ -578,7 +592,6 @@ app.post('/api/reservas', async (req, res) => {
   const estadoPagoInicial = metodoPagoFinal === 'TARJETA' ? 'aprobado' : 'en_revision';
   const estadoReservaInicial = metodoPagoFinal === 'TARJETA' ? 'pagada' : 'reservada';
 
-  
   const sqlReserva = `
     INSERT INTO reservas (id_bungalow, id_usuario, nombre, apellidos, email, telefono, fecha_inicio, fecha_fin, monto_total, estado)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -603,7 +616,7 @@ app.post('/api/reservas', async (req, res) => {
 
     const idReservaCreada = resultReserva.insertId;
 
-    // 2. Insertar el registro financiero 
+    // 2. Insertar el registro financiero
     const sqlPago = `
       INSERT INTO pagos (id_reserva, metodo_pago, comprobante_url, estado_pago)
       VALUES (?, ?, ?, ?)
@@ -612,16 +625,22 @@ app.post('/api/reservas', async (req, res) => {
     db.query(sqlPago, [
       idReservaCreada,
       metodoPagoFinal,
-      comprobante_referencia || 'SIN-COMPROBANTE',
+      comprobante_referencia && comprobante_referencia.trim() !== ''
+        ? comprobante_referencia.trim()
+        : 'SIN-COMPROBANTE',
       estadoPagoInicial
     ], async (errPago) => {
       if (errPago) {
         console.error('⚠️ Error al registrar el pago en la tabla pagos:', errPago);
       }
 
-      // 3. Enviar correo electrónico de confirmación 
+      // 3. Enviar correo electrónico de confirmación
       try {
         if (email) {
+          const totalFormateado = Number(total || 0).toLocaleString('en-US', {
+            maximumFractionDigits: 2
+          });
+
           const responseBrevo = await fetch('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
             headers: {
@@ -644,7 +663,7 @@ app.post('/api/reservas', async (req, res) => {
                   <ul style="line-height: 1.6;">
                     <li><strong>Entrada / Check-in (15:00):</strong> ${fecha_checkin}</li>
                     <li><strong>Salida / Check-out (11:00):</strong> ${fecha_checkout}</li>
-                    <li><strong>Monto Total:</strong> $${total}</li>
+                    <li><strong>Monto Total:</strong> ₡${totalFormateado}</li>
                     <li><strong>Método de Pago:</strong> ${metodoPagoFinal}</li>
                     <li><strong>Referencia / Comprobante:</strong> ${comprobante_referencia || 'N/A'}</li>
                     <li><strong>Estado del Pago:</strong> ${estadoPagoInicial}</li>
@@ -717,9 +736,11 @@ app.put('/api/admin/reservas/:id/estado', async (req, res) => {
 app.put('/api/admin/pagos/comprobante', (req, res) => {
   const { id_reserva, comprobante } = req.body;
 
-  if (!id_reserva || !comprobante) {
+  if (!id_reserva || !comprobante || !comprobante.trim()) {
     return res.status(400).json({ success: false, error: 'Faltan datos obligatorios.' });
   }
+
+  const comprobanteLimpio = comprobante.trim();
 
   // 1. Verificamos si ya existe un registro de pago para esta reserva
   db.query('SELECT id_pago FROM finca_don_litos.pagos WHERE id_reserva = ?', [id_reserva], (err, pagosExistentes) => {
@@ -729,10 +750,10 @@ app.put('/api/admin/pagos/comprobante', (req, res) => {
     }
 
     if (pagosExistentes.length > 0) {
-      // Si ya existe, lo actualizamos usando parámetros seguros 
+      // Si ya existe, lo actualizamos usando parámetros seguros
       db.query(
         'UPDATE finca_don_litos.pagos SET comprobante_url = ?, estado_pago = ? WHERE id_reserva = ?',
-        [comprobante.trim(), 'aprobado', id_reserva],
+        [comprobanteLimpio, 'aprobado', id_reserva],
         (errUpdate) => {
           if (errUpdate) {
             console.error(' Error al actualizar el pago:', errUpdate);
@@ -742,10 +763,10 @@ app.put('/api/admin/pagos/comprobante', (req, res) => {
         }
       );
     } else {
-      // Si no existe, creamos el registro de pago automáticamente con parámetros seguros 
+      // Si no existe, creamos el registro de pago automáticamente con parámetros seguros
       db.query(
         'INSERT INTO finca_don_litos.pagos (id_reserva, metodo_pago, comprobante_url, estado_pago, fecha_pago) VALUES (?, ?, ?, ?, NOW())',
-        [id_reserva, 'SINPE_MOVIL', comprobante.trim(), 'aprobado'],
+        [id_reserva, 'SINPE_MOVIL', comprobanteLimpio, 'aprobado'],
         (errInsert) => {
           if (errInsert) {
             console.error(' Error al insertar el pago:', errInsert);

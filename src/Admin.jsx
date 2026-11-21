@@ -19,75 +19,20 @@ export default function Admin({ setAutenticado }) {
   const [guardandoComprobante, setGuardandoComprobante] = useState(false);
   const [modoEdicionPago, setModoEdicionPago] = useState(false);
 
-  // Formateador de montos en colones 
+  // Formateador de montos en colones con separador de miles (ej. 25,000)
   const formatearColones = (monto) => {
     return Number(monto || 0).toLocaleString('en-US', {
       maximumFractionDigits: 2,
     });
   };
 
-  // Estados para el módulo de Reportes de Reservas
-  const [fechaReporteDesde, setFechaReporteDesde] = useState('');
-  const [fechaReporteHasta, setFechaReporteHasta] = useState('');
-  const [estadoReporte, setEstadoReporte] = useState('todos');
-  const [cabanaReporte, setCabanaReporte] = useState('todas');
-
-  const reservasReporte = reservas.filter((r) => {
-    if (!r.fecha_checkin) return false;
-    if (cabanaReporte !== 'todas' && r.cabana_nombre !== cabanaReporte) return false;
-    if (estadoReporte !== 'todos' && r.estado !== estadoReporte) return false;
-    if (fechaReporteDesde && r.fecha_checkin < fechaReporteDesde) return false;
-    if (fechaReporteHasta && r.fecha_checkin > fechaReporteHasta) return false;
-    return true;
-  });
-
-  const totalIngresosReporte = reservasReporte
-    .filter((r) => r.estado !== 'cancelada')
-    .reduce((acc, r) => acc + Number(r.total || 0), 0);
-
-  const exportarReporteExcel = () => {
-    const encabezados = [
-      'ID',
-      'Cliente',
-      'Correo',
-      'Telefono',
-      'Cabana',
-      'Check-in',
-      'Check-out',
-      'Total (CRC)',
-      'Estado',
-      'Comprobante'
-    ];
-
-    const filas = reservasReporte.map((r) => [
-      r.id,
-      `"${(r.nombre_cliente || '').replace(/"/g, '""')}"`,
-      `"${(r.email_cliente || '').replace(/"/g, '""')}"`,
-      `"${(r.telefono_cliente || 'N/D').replace(/"/g, '""')}"`,
-      `"${(r.cabana_nombre || '').replace(/"/g, '""')}"`,
-      r.fecha_checkin || '',
-      r.fecha_checkout || '',
-      Number(r.total || 0),
-      r.estado || '',
-      `"${(r.comprobante_pago || 'Ninguno').replace(/"/g, '""')}"`
-    ]);
-
-    const contenidoCSV = [encabezados.join(','), ...filas.map((f) => f.join(','))].join('\n');
-    const blob = new Blob(['\uFEFF' + contenidoCSV], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    const rangoTexto = fechaReporteDesde || fechaReporteHasta
-      ? `${fechaReporteDesde || 'inicio'}_a_${fechaReporteHasta || 'fin'}`
-      : 'completo';
-    link.href = url;
-    link.setAttribute('download', `reporte_reservas_${rangoTexto}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  // Normaliza el comprobante desde comprobante_url o comprobante_pago
+  const obtenerComprobante = (reserva) => {
+    const valor = reserva?.comprobante_url || reserva?.comprobante_pago || '';
+    const limpio = String(valor).trim();
+    if (!limpio || limpio === 'N/A' || limpio === 'SIN-COMPROBANTE') return '';
+    return limpio;
   };
-
 
   // Estados para editar el precio de las cabañas (Temporada Alta)
   const [editandoPrecioCabanaId, setEditandoPrecioCabanaId] = useState(null);
@@ -839,6 +784,68 @@ export default function Admin({ setAutenticado }) {
     return coincideTexto && coincideBungalow && coincideEstado;
   });
 
+  // Estados para el módulo de Reportes de Reservas
+  const [fechaReporteDesde, setFechaReporteDesde] = useState('');
+  const [fechaReporteHasta, setFechaReporteHasta] = useState('');
+  const [estadoReporte, setEstadoReporte] = useState('todos');
+  const [cabanaReporte, setCabanaReporte] = useState('todas');
+
+  const reservasReporte = reservas.filter((r) => {
+    if (!r.fecha_checkin) return false;
+    if (cabanaReporte !== 'todas' && r.cabana_nombre !== cabanaReporte) return false;
+    if (estadoReporte !== 'todos' && r.estado !== estadoReporte) return false;
+    if (fechaReporteDesde && r.fecha_checkin < fechaReporteDesde) return false;
+    if (fechaReporteHasta && r.fecha_checkin > fechaReporteHasta) return false;
+    return true;
+  });
+
+  const totalIngresosReporte = reservasReporte
+    .filter((r) => r.estado !== 'cancelada')
+    .reduce((acc, r) => acc + Number(r.total || 0), 0);
+
+  const exportarReporteExcel = () => {
+    const encabezados = [
+      'ID',
+      'Cliente',
+      'Correo',
+      'Telefono',
+      'Cabana',
+      'Check-in',
+      'Check-out',
+      'Total (CRC)',
+      'Estado',
+      'Comprobante'
+    ];
+
+    const filas = reservasReporte.map((r) => [
+      r.id,
+      `"${(r.nombre_cliente || '').replace(/"/g, '""')}"`,
+      `"${(r.email_cliente || '').replace(/"/g, '""')}"`,
+      `"${(r.telefono_cliente || 'N/D').replace(/"/g, '""')}"`,
+      `"${(r.cabana_nombre || '').replace(/"/g, '""')}"`,
+      r.fecha_checkin || '',
+      r.fecha_checkout || '',
+      Number(r.total || 0),
+      r.estado || '',
+      `"${(obtenerComprobante(r) || 'Ninguno').replace(/"/g, '""')}"`
+    ]);
+
+    const contenidoCSV = [encabezados.join(','), ...filas.map((f) => f.join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + contenidoCSV], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    const rangoTexto = fechaReporteDesde || fechaReporteHasta
+      ? `${fechaReporteDesde || 'inicio'}_a_${fechaReporteHasta || 'fin'}`
+      : 'completo';
+    link.href = url;
+    link.setAttribute('download', `reporte_reservas_${rangoTexto}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
       <style>{`
@@ -1179,6 +1186,7 @@ export default function Admin({ setAutenticado }) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
                     {reservasDelDia.map((r) => {
                       const estilo = obtenerEstiloEstado(r.estado);
+                      const compActual = obtenerComprobante(r);
                       return (
                         <div key={r.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', backgroundColor: '#fcfcfc' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
@@ -1195,7 +1203,7 @@ export default function Admin({ setAutenticado }) {
                             <div><strong>Check-in:</strong> {r.fecha_checkin}</div>
                             <div><strong>Check-out:</strong> {r.fecha_checkout}</div>
                             <div><strong>Total:</strong> ₡{formatearColones(r.total)}</div>
-                            <div><strong>Comprobante:</strong> {r.comprobante_pago || 'Ninguno'}</div>
+                            <div><strong>Comprobante:</strong> {compActual || 'Ninguno'}</div>
                           </div>
 
                           <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1234,7 +1242,8 @@ export default function Admin({ setAutenticado }) {
                             <button
                               onClick={() => {
                                 setModalPagoDetalle(r);
-                                setNuevoComprobanteAdmin(r.comprobante_pago || '');
+                                setNuevoComprobanteAdmin(compActual);
+                                setModoEdicionPago(false);
                               }}
                               style={{ backgroundColor: '#17a2b8', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                             >
@@ -1307,6 +1316,7 @@ export default function Admin({ setAutenticado }) {
                     <tbody>
                       {reservasFiltradas.map((r, index) => {
                         const estilo = obtenerEstiloEstado(r.estado);
+                        const compActual = obtenerComprobante(r);
                         return (
                           <tr key={r.id} style={{ borderBottom: '1px solid #eee', backgroundColor: index % 2 === 0 ? '#fafafa' : '#ffffff' }}>
                             <td style={{ padding: '12px' }}>#{r.id}</td>
@@ -1352,7 +1362,8 @@ export default function Admin({ setAutenticado }) {
                                 <button
                                   onClick={() => {
                                     setModalPagoDetalle(r);
-                                    setNuevoComprobanteAdmin(r.comprobante_pago || '');
+                                    setNuevoComprobanteAdmin(compActual);
+                                    setModoEdicionPago(false);
                                   }}
                                   style={{ backgroundColor: '#17a2b8', color: 'white', border: 'none', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
                                 >
@@ -1575,6 +1586,7 @@ export default function Admin({ setAutenticado }) {
               </div>
             </div>
           )}
+
           {/* PESTAÑA 4: REPORTES DE RESERVAS */}
           {tabActiva === 'reportes' && (
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
@@ -1721,7 +1733,7 @@ export default function Admin({ setAutenticado }) {
                                 {r.estado}
                               </span>
                             </td>
-                            <td style={{ padding: '12px' }}>{r.comprobante_pago || 'Ninguno'}</td>
+                            <td style={{ padding: '12px' }}>{obtenerComprobante(r) || 'Ninguno'}</td>
                           </tr>
                         );
                       })}
@@ -2114,92 +2126,95 @@ export default function Admin({ setAutenticado }) {
       )}
 
       {/* MODAL PARA VER/EDITAR COMPROBANTE DE PAGO */}
-      {modalPagoDetalle && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', width: '100%', maxWidth: '420px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ marginTop: 0, color: '#2e4d25', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>💳 Detalle de Pago / Comprobante</h3>
+      {modalPagoDetalle && (() => {
+        const comprobanteActual = obtenerComprobante(modalPagoDetalle);
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+            <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '10px', width: '100%', maxWidth: '420px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
+              <h3 style={{ marginTop: 0, color: '#2e4d25', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>💳 Detalle de Pago / Comprobante</h3>
 
-            <div style={{ fontSize: '14px', color: '#333', marginBottom: '15px', marginTop: '10px' }}>
-              <p style={{ margin: '5px 0' }}><strong>Reserva ID:</strong> #{modalPagoDetalle.id}</p>
-              <p style={{ margin: '5px 0' }}><strong>Cliente:</strong> {modalPagoDetalle.nombre_cliente}</p>
-              <p style={{ margin: '5px 0' }}><strong>Cabaña:</strong> {modalPagoDetalle.cabana_nombre}</p>
-              <p style={{ margin: '5px 0' }}><strong>Total:</strong> ₡{formatearColones(modalPagoDetalle.total)}</p>
+              <div style={{ fontSize: '14px', color: '#333', marginBottom: '15px', marginTop: '10px' }}>
+                <p style={{ margin: '5px 0' }}><strong>Reserva ID:</strong> #{modalPagoDetalle.id}</p>
+                <p style={{ margin: '5px 0' }}><strong>Cliente:</strong> {modalPagoDetalle.nombre_cliente}</p>
+                <p style={{ margin: '5px 0' }}><strong>Cabaña:</strong> {modalPagoDetalle.cabana_nombre}</p>
+                <p style={{ margin: '5px 0' }}><strong>Total:</strong> ₡{formatearColones(modalPagoDetalle.total)}</p>
+              </div>
+
+              {comprobanteActual && !modoEdicionPago ? (
+                <div style={{ textAlign: 'center', margin: '20px 0' }}>
+                  <div style={{ backgroundColor: '#e6f4ea', padding: '15px', borderRadius: '8px', border: '1px solid #c6f6d5', marginBottom: '15px' }}>
+                    <small style={{ color: '#2e4d25', display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>
+                      Comprobante / Referencia Registrada:
+                    </small>
+                    <span style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#1b4332', letterSpacing: '0.5px' }}>
+                      {comprobanteActual}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNuevoComprobanteAdmin(comprobanteActual);
+                        setModoEdicionPago(true);
+                      }}
+                      style={{ backgroundColor: '#17a2b8', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                    >
+                      ✏️ Editar Comprobante
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModalPagoDetalle(null);
+                        setModoEdicionPago(false);
+                      }}
+                      style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                      Número de Comprobante / Referencia:
+                    </label>
+                    <input
+                      type="text"
+                      value={nuevoComprobanteAdmin}
+                      onChange={(e) => setNuevoComprobanteAdmin(e.target.value)}
+                      placeholder="Ej. SINPE-123456"
+                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModalPagoDetalle(null);
+                        setModoEdicionPago(false);
+                      }}
+                      style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleGuardarComprobanteAdmin(modalPagoDetalle.id)}
+                      disabled={guardandoComprobante}
+                      style={{ backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                    >
+                      {guardandoComprobante ? 'Guardando...' : 'Guardar Comprobante'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-
-            {modalPagoDetalle.comprobante_pago && !modoEdicionPago ? (
-              <div style={{ textAlign: 'center', margin: '20px 0' }}>
-                <div style={{ backgroundColor: '#e6f4ea', padding: '15px', borderRadius: '8px', border: '1px solid #c6f6d5', marginBottom: '15px' }}>
-                  <small style={{ color: '#2e4d25', display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>
-                    Comprobante / Referencia Registrada:
-                  </small>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#1b4332', letterSpacing: '0.5px' }}>
-                    {modalPagoDetalle.comprobante_pago}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNuevoComprobanteAdmin(modalPagoDetalle.comprobante_pago);
-                      setModoEdicionPago(true);
-                    }}
-                    style={{ backgroundColor: '#17a2b8', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
-                  >
-                    ✏️ Editar Comprobante
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setModalPagoDetalle(null);
-                      setModoEdicionPago(false);
-                    }}
-                    style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
-                  >
-                    Cerrar
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                    Número de Comprobante / Referencia:
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevoComprobanteAdmin}
-                    onChange={(e) => setNuevoComprobanteAdmin(e.target.value)}
-                    placeholder="Ej. SINPE-123456"
-                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setModalPagoDetalle(null);
-                      setModoEdicionPago(false);
-                    }}
-                    style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer' }}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleGuardarComprobanteAdmin(modalPagoDetalle.id)}
-                    disabled={guardandoComprobante}
-                    style={{ backgroundColor: '#2e4d25', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                  >
-                    {guardandoComprobante ? 'Guardando...' : 'Guardar Comprobante'}
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
