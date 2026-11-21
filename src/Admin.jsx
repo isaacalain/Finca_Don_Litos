@@ -5,7 +5,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { eachDayOfInterval, isWithinInterval, isBefore, startOfDay, format } from 'date-fns';
 
 export default function Admin({ setAutenticado }) {
-  const [tabActiva, setTabActiva] = useState('calendario'); 
+  const [tabActiva, setTabActiva] = useState('calendario');
   const [reservas, setReservas] = useState([]);
   const [cabanas, setCabanas] = useState([]);
   const [usuariosList, setUsuariosList] = useState([]);
@@ -18,6 +18,13 @@ export default function Admin({ setAutenticado }) {
   const [nuevoComprobanteAdmin, setNuevoComprobanteAdmin] = useState('');
   const [guardandoComprobante, setGuardandoComprobante] = useState(false);
   const [modoEdicionPago, setModoEdicionPago] = useState(false);
+
+  // Formateador de montos en colones con separador de miles (ej. 25,000)
+  const formatearColones = (monto) => {
+    return Number(monto || 0).toLocaleString('en-US', {
+      maximumFractionDigits: 2,
+    });
+  };
 
   // Estados para editar el precio de las cabañas (Temporada Alta)
   const [editandoPrecioCabanaId, setEditandoPrecioCabanaId] = useState(null);
@@ -80,7 +87,7 @@ export default function Admin({ setAutenticado }) {
 
   // Estado para precio manual negociado en reserva manual
   const [precioManualAdmin, setPrecioManualAdmin] = useState('');
- 
+
   // ESTADOS PARA ACCIONES SEGURAS DE USUARIO
   const [modalAccionUsuario, setModalAccionUsuario] = useState(false);
   const [usuarioObjetivo, setUsuarioObjetivo] = useState(null);
@@ -542,7 +549,7 @@ export default function Admin({ setAutenticado }) {
       const data = await response.json();
       if (data.success) {
         mostrarAlertaExito('Comprobante registrado con éxito.');
-        setModoEdicionPago(false); 
+        setModoEdicionPago(false);
         setModalPagoDetalle(null);
         setNuevoComprobanteAdmin('');
         obtenerDatos();
@@ -1043,7 +1050,7 @@ export default function Admin({ setAutenticado }) {
                   >
                     {cabanas.map((c) => (
                       <option key={c.id_bungalow} value={c.id_bungalow}>
-                        {c.nombre} (${c.precio_noche}/noche)
+                        {c.nombre} (₡{formatearColones(c.precio_noche)}/noche)
                       </option>
                     ))}
                   </select>
@@ -1109,7 +1116,7 @@ export default function Admin({ setAutenticado }) {
                           <div style={{ fontSize: '13px', color: '#4a5568', marginBottom: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
                             <div><strong>Check-in:</strong> {r.fecha_checkin}</div>
                             <div><strong>Check-out:</strong> {r.fecha_checkout}</div>
-                            <div><strong>Total:</strong> ${r.total}</div>
+                            <div><strong>Total:</strong> ₡{formatearColones(r.total)}</div>
                             <div><strong>Comprobante:</strong> {r.comprobante_pago || 'Ninguno'}</div>
                           </div>
 
@@ -1232,7 +1239,7 @@ export default function Admin({ setAutenticado }) {
                             <td style={{ padding: '12px' }}>{r.cabana_nombre}</td>
                             <td style={{ padding: '12px' }}>{r.fecha_checkin}</td>
                             <td style={{ padding: '12px' }}>{r.fecha_checkout}</td>
-                            <td style={{ padding: '12px' }}>${r.total}</td>
+                            <td style={{ padding: '12px' }}>₡{formatearColones(r.total)}</td>
                             <td style={{ padding: '12px' }}>
                               <span style={{ padding: '4px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 'bold', ...estilo }}>
                                 {r.estado}
@@ -1301,14 +1308,14 @@ export default function Admin({ setAutenticado }) {
                       <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}>{c.descripcion}</p>
                       <div style={{ fontSize: '14px', marginBottom: '15px' }}>
                         <strong>Precio actual: </strong>
-                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1b4332' }}>${c.precio_noche} / noche</span>
+                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1b4332' }}>₡{formatearColones(c.precio_noche)} / noche</span>
                       </div>
                     </div>
 
                     <div>
                       {editandoPrecioCabanaId === c.id_bungalow ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
-                          <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Nuevo Precio ($):</label>
+                          <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Nuevo Precio (₡):</label>
                           <input
                             type="number"
                             value={nuevoPrecioCabanaVal}
@@ -1657,7 +1664,7 @@ export default function Admin({ setAutenticado }) {
                   style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }}
                 >
                   {cabanas.map((c) => (
-                    <option key={c.id_bungalow} value={c.id_bungalow}>{c.nombre} (${c.precio_noche}/noche)</option>
+                    <option key={c.id_bungalow} value={c.id_bungalow}>{c.nombre} (₡{formatearColones(c.precio_noche)}/noche)</option>
                   ))}
                 </select>
               </div>
@@ -1743,7 +1750,7 @@ export default function Admin({ setAutenticado }) {
                   }}
                   value={precioManualAdmin}
                   onChange={(e) => setPrecioManualAdmin(e.target.value)}
-                  placeholder={`Sugerido automático: $${calcularTotalAdminReserva()}`}
+                  placeholder={`Sugerido automático: ₡${formatearColones(calcularTotalAdminReserva())}`}
                 />
                 <small style={{ color: '#666', fontSize: '11px' }}>
                   Si se deja vacío, se calcula automáticamente según las noches y tarifa de la cabaña.
@@ -1882,7 +1889,7 @@ export default function Admin({ setAutenticado }) {
               <p style={{ margin: '5px 0' }}><strong>Reserva ID:</strong> #{modalPagoDetalle.id}</p>
               <p style={{ margin: '5px 0' }}><strong>Cliente:</strong> {modalPagoDetalle.nombre_cliente}</p>
               <p style={{ margin: '5px 0' }}><strong>Cabaña:</strong> {modalPagoDetalle.cabana_nombre}</p>
-              <p style={{ margin: '5px 0' }}><strong>Total:</strong> ${modalPagoDetalle.total}</p>
+              <p style={{ margin: '5px 0' }}><strong>Total:</strong> ₡{formatearColones(modalPagoDetalle.total)}</p>
             </div>
 
             {modalPagoDetalle.comprobante_pago && !modoEdicionPago ? (
