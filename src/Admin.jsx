@@ -19,12 +19,75 @@ export default function Admin({ setAutenticado }) {
   const [guardandoComprobante, setGuardandoComprobante] = useState(false);
   const [modoEdicionPago, setModoEdicionPago] = useState(false);
 
-  // Formateador de montos en colones con separador de miles (ej. 25,000)
+  // Formateador de montos en colones 
   const formatearColones = (monto) => {
     return Number(monto || 0).toLocaleString('en-US', {
       maximumFractionDigits: 2,
     });
   };
+
+  // Estados para el módulo de Reportes de Reservas
+  const [fechaReporteDesde, setFechaReporteDesde] = useState('');
+  const [fechaReporteHasta, setFechaReporteHasta] = useState('');
+  const [estadoReporte, setEstadoReporte] = useState('todos');
+  const [cabanaReporte, setCabanaReporte] = useState('todas');
+
+  const reservasReporte = reservas.filter((r) => {
+    if (!r.fecha_checkin) return false;
+    if (cabanaReporte !== 'todas' && r.cabana_nombre !== cabanaReporte) return false;
+    if (estadoReporte !== 'todos' && r.estado !== estadoReporte) return false;
+    if (fechaReporteDesde && r.fecha_checkin < fechaReporteDesde) return false;
+    if (fechaReporteHasta && r.fecha_checkin > fechaReporteHasta) return false;
+    return true;
+  });
+
+  const totalIngresosReporte = reservasReporte
+    .filter((r) => r.estado !== 'cancelada')
+    .reduce((acc, r) => acc + Number(r.total || 0), 0);
+
+  const exportarReporteExcel = () => {
+    const encabezados = [
+      'ID',
+      'Cliente',
+      'Correo',
+      'Telefono',
+      'Cabana',
+      'Check-in',
+      'Check-out',
+      'Total (CRC)',
+      'Estado',
+      'Comprobante'
+    ];
+
+    const filas = reservasReporte.map((r) => [
+      r.id,
+      `"${(r.nombre_cliente || '').replace(/"/g, '""')}"`,
+      `"${(r.email_cliente || '').replace(/"/g, '""')}"`,
+      `"${(r.telefono_cliente || 'N/D').replace(/"/g, '""')}"`,
+      `"${(r.cabana_nombre || '').replace(/"/g, '""')}"`,
+      r.fecha_checkin || '',
+      r.fecha_checkout || '',
+      Number(r.total || 0),
+      r.estado || '',
+      `"${(r.comprobante_pago || 'Ninguno').replace(/"/g, '""')}"`
+    ]);
+
+    const contenidoCSV = [encabezados.join(','), ...filas.map((f) => f.join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + contenidoCSV], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    const rangoTexto = fechaReporteDesde || fechaReporteHasta
+      ? `${fechaReporteDesde || 'inicio'}_a_${fechaReporteHasta || 'fin'}`
+      : 'completo';
+    link.href = url;
+    link.setAttribute('download', `reporte_reservas_${rangoTexto}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
 
   // Estados para editar el precio de las cabañas (Temporada Alta)
   const [editandoPrecioCabanaId, setEditandoPrecioCabanaId] = useState(null);
@@ -1025,6 +1088,21 @@ export default function Admin({ setAutenticado }) {
         >
           👥 Gestión de Usuarios ({usuariosList.length})
         </button>
+
+        <button
+          onClick={() => setTabActiva('reportes')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '6px',
+            border: 'none',
+            backgroundColor: tabActiva === 'reportes' ? '#2e4d25' : '#e2e8f0',
+            color: tabActiva === 'reportes' ? 'white' : '#333',
+            fontWeight: 'bold',
+            cursor: 'pointer'
+          }}
+        >
+          📊 Reportes
+        </button>
       </div>
 
       {cargando ? (
@@ -1495,6 +1573,162 @@ export default function Admin({ setAutenticado }) {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+          {/* PESTAÑA 4: REPORTES DE RESERVAS */}
+          {tabActiva === 'reportes' && (
+            <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '15px' }}>
+                <div>
+                  <h3 style={{ margin: 0, color: '#2e4d25' }}>📊 Reportes de Reservas</h3>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#555' }}>
+                    Filtra por un día exacto, rango de días o meses, cabaña y estado, y descarga el reporte en formato Excel (.csv).
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFechaReporteDesde('');
+                      setFechaReporteHasta('');
+                      setEstadoReporte('todos');
+                      setCabanaReporte('todas');
+                    }}
+                    style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '9px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                  >
+                    Limpiar Filtros
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={exportarReporteExcel}
+                    disabled={reservasReporte.length === 0}
+                    style={{
+                      backgroundColor: reservasReporte.length === 0 ? '#a0aec0' : '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      padding: '9px 16px',
+                      borderRadius: '6px',
+                      cursor: reservasReporte.length === 0 ? 'not-allowed' : 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '13px'
+                    }}
+                  >
+                    📥 Descargar Excel (.csv)
+                  </button>
+                </div>
+              </div>
+
+              {/* Controles de Filtro */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>Desde (Check-in):</label>
+                  <input
+                    type="date"
+                    value={fechaReporteDesde}
+                    onChange={(e) => setFechaReporteDesde(e.target.value)}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box', backgroundColor: 'white' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>Hasta (Check-in):</label>
+                  <input
+                    type="date"
+                    value={fechaReporteHasta}
+                    onChange={(e) => setFechaReporteHasta(e.target.value)}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box', backgroundColor: 'white' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>Cabaña:</label>
+                  <select
+                    value={cabanaReporte}
+                    onChange={(e) => setCabanaReporte(e.target.value)}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box', backgroundColor: 'white' }}
+                  >
+                    <option value="todas">Todas las cabañas</option>
+                    {cabanas.map((c) => (
+                      <option key={c.id_bungalow} value={c.nombre}>{c.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '5px' }}>Estado de Reserva:</label>
+                  <select
+                    value={estadoReporte}
+                    onChange={(e) => setEstadoReporte(e.target.value)}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box', backgroundColor: 'white' }}
+                  >
+                    <option value="todos">Todos los estados</option>
+                    <option value="pagada">Pagada</option>
+                    <option value="reservada">Reservada (Pendiente)</option>
+                    <option value="cancelada">Cancelada</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Resumen del Reporte */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', backgroundColor: '#fcfcfc' }}>
+                  <div style={{ fontSize: '12px', color: '#666' }}>Reservas en el rango</div>
+                  <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#2e4d25', marginTop: '4px' }}>{reservasReporte.length}</div>
+                </div>
+
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px', backgroundColor: '#fcfcfc' }}>
+                  <div style={{ fontSize: '12px', color: '#666' }}>Monto total (sin canceladas)</div>
+                  <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1b4332', marginTop: '4px' }}>₡{formatearColones(totalIngresosReporte)}</div>
+                </div>
+              </div>
+
+              {/* Vista previa en tabla */}
+              {reservasReporte.length === 0 ? (
+                <p style={{ color: '#666', fontStyle: 'italic' }}>No hay reservas que coincidan con los filtros elegidos.</p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#2e4d25', color: 'white' }}>
+                        <th style={{ padding: '12px' }}>ID</th>
+                        <th style={{ padding: '12px' }}>Cliente</th>
+                        <th style={{ padding: '12px' }}>Cabaña</th>
+                        <th style={{ padding: '12px' }}>Check-in</th>
+                        <th style={{ padding: '12px' }}>Check-out</th>
+                        <th style={{ padding: '12px' }}>Total</th>
+                        <th style={{ padding: '12px' }}>Estado</th>
+                        <th style={{ padding: '12px' }}>Comprobante</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reservasReporte.map((r, index) => {
+                        const estilo = obtenerEstiloEstado(r.estado);
+                        return (
+                          <tr key={r.id} style={{ borderBottom: '1px solid #eee', backgroundColor: index % 2 === 0 ? '#fafafa' : '#ffffff' }}>
+                            <td style={{ padding: '12px' }}>#{r.id}</td>
+                            <td style={{ padding: '12px' }}>
+                              <div style={{ fontWeight: 'bold' }}>{r.nombre_cliente}</div>
+                              <div style={{ fontSize: '12px', color: '#666' }}>{r.email_cliente}</div>
+                            </td>
+                            <td style={{ padding: '12px' }}>{r.cabana_nombre}</td>
+                            <td style={{ padding: '12px' }}>{r.fecha_checkin}</td>
+                            <td style={{ padding: '12px' }}>{r.fecha_checkout}</td>
+                            <td style={{ padding: '12px' }}>₡{formatearColones(r.total)}</td>
+                            <td style={{ padding: '12px' }}>
+                              <span style={{ padding: '4px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 'bold', ...estilo }}>
+                                {r.estado}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px' }}>{r.comprobante_pago || 'Ninguno'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </>
