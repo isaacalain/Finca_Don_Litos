@@ -26,6 +26,13 @@ export default function Admin({ setAutenticado }) {
     });
   };
 
+  // Une nombre y apellidos del cliente sin dejar espacios extra si no hay apellidos
+  const obtenerNombreCompleto = (reserva) => {
+    const nombre = (reserva?.nombre_cliente ?? reserva?.nombre ?? '').trim();
+    const apellidos = (reserva?.apellidos_cliente ?? reserva?.apellidos ?? '').trim();
+    return `${nombre} ${apellidos}`.trim() || 'Cliente';
+  };
+
   // Normaliza el comprobante desde comprobante_url o comprobante_pago
   const obtenerComprobante = (reserva) => {
     const valor = reserva?.comprobante_url || reserva?.comprobante_pago || '';
@@ -769,9 +776,10 @@ export default function Admin({ setAutenticado }) {
 
   const reservasFiltradas = reservas.filter((reserva) => {
     const texto = busquedaTexto.toLowerCase().trim();
+    const nombreCompleto = obtenerNombreCompleto(reserva).toLowerCase();
     const coincideTexto =
       texto === '' ||
-      reserva.nombre_cliente?.toLowerCase().includes(texto) ||
+      nombreCompleto.includes(texto) ||
       reserva.email_cliente?.toLowerCase().includes(texto) ||
       reserva.id?.toString().includes(texto);
 
@@ -819,7 +827,7 @@ export default function Admin({ setAutenticado }) {
 
     const filas = reservasReporte.map((r) => [
       r.id,
-      `"${(r.nombre_cliente || '').replace(/"/g, '""')}"`,
+      `"${obtenerNombreCompleto(r).replace(/"/g, '""')}"`,
       `"${(r.email_cliente || '').replace(/"/g, '""')}"`,
       `"${(r.telefono_cliente || 'N/D').replace(/"/g, '""')}"`,
       `"${(r.cabana_nombre || '').replace(/"/g, '""')}"`,
@@ -1191,7 +1199,7 @@ export default function Admin({ setAutenticado }) {
                         <div key={r.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', backgroundColor: '#fcfcfc' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                             <div>
-                              <strong style={{ fontSize: '15px', color: '#1a202c' }}>{r.nombre_cliente}</strong>
+                              <strong style={{ fontSize: '15px', color: '#1a202c' }}>{obtenerNombreCompleto(r)}</strong>
                               <div style={{ fontSize: '13px', color: '#4a5568' }}>{r.email_cliente} • 📞 {r.telefono_cliente || 'N/D'}</div>
                             </div>
                             <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', ...estilo }}>
@@ -1321,7 +1329,7 @@ export default function Admin({ setAutenticado }) {
                           <tr key={r.id} style={{ borderBottom: '1px solid #eee', backgroundColor: index % 2 === 0 ? '#fafafa' : '#ffffff' }}>
                             <td style={{ padding: '12px' }}>#{r.id}</td>
                             <td style={{ padding: '12px' }}>
-                              <div style={{ fontWeight: 'bold' }}>{r.nombre_cliente}</div>
+                              <div style={{ fontWeight: 'bold' }}>{obtenerNombreCompleto(r)}</div>
                               <div style={{ fontSize: '12px', color: '#666' }}>{r.email_cliente}</div>
                             </td>
                             <td style={{ padding: '12px' }}>{r.cabana_nombre}</td>
@@ -1721,7 +1729,7 @@ export default function Admin({ setAutenticado }) {
                           <tr key={r.id} style={{ borderBottom: '1px solid #eee', backgroundColor: index % 2 === 0 ? '#fafafa' : '#ffffff' }}>
                             <td style={{ padding: '12px' }}>#{r.id}</td>
                             <td style={{ padding: '12px' }}>
-                              <div style={{ fontWeight: 'bold' }}>{r.nombre_cliente}</div>
+                              <div style={{ fontWeight: 'bold' }}>{obtenerNombreCompleto(r)}</div>
                               <div style={{ fontSize: '12px', color: '#666' }}>{r.email_cliente}</div>
                             </td>
                             <td style={{ padding: '12px' }}>{r.cabana_nombre}</td>
@@ -2135,7 +2143,7 @@ export default function Admin({ setAutenticado }) {
 
               <div style={{ fontSize: '14px', color: '#333', marginBottom: '15px', marginTop: '10px' }}>
                 <p style={{ margin: '5px 0' }}><strong>Reserva ID:</strong> #{modalPagoDetalle.id}</p>
-                <p style={{ margin: '5px 0' }}><strong>Cliente:</strong> {modalPagoDetalle.nombre_cliente}</p>
+                <p style={{ margin: '5px 0' }}><strong>Cliente:</strong> {obtenerNombreCompleto(modalPagoDetalle)}</p>
                 <p style={{ margin: '5px 0' }}><strong>Cabaña:</strong> {modalPagoDetalle.cabana_nombre}</p>
                 <p style={{ margin: '5px 0' }}><strong>Total:</strong> ₡{formatearColones(modalPagoDetalle.total)}</p>
               </div>
