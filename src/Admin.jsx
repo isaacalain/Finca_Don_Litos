@@ -19,21 +19,21 @@ export default function Admin({ setAutenticado }) {
   const [guardandoComprobante, setGuardandoComprobante] = useState(false);
   const [modoEdicionPago, setModoEdicionPago] = useState(false);
 
-  // Formateador de montos en colones con separador de miles (ej. 25,000)
+  // montos en colones con separador de miles 
   const formatearColones = (monto) => {
     return Number(monto || 0).toLocaleString('en-US', {
       maximumFractionDigits: 2,
     });
   };
 
-  // Une nombre y apellidos del cliente sin dejar espacios extra si no hay apellidos
+  
   const obtenerNombreCompleto = (reserva) => {
     const nombre = (reserva?.nombre_cliente ?? reserva?.nombre ?? '').trim();
     const apellidos = (reserva?.apellidos_cliente ?? reserva?.apellidos ?? '').trim();
     return `${nombre} ${apellidos}`.trim() || 'Cliente';
   };
 
-  // Normaliza el comprobante desde comprobante_url o comprobante_pago
+  
   const obtenerComprobante = (reserva) => {
     const valor = reserva?.comprobante_url || reserva?.comprobante_pago || '';
     const limpio = String(valor).trim();
@@ -41,12 +41,12 @@ export default function Admin({ setAutenticado }) {
     return limpio;
   };
 
-  // Estados para editar el precio de las cabañas (Temporada Alta)
+  // estados para editar el precio de las cabañas 
   const [editandoPrecioCabanaId, setEditandoPrecioCabanaId] = useState(null);
   const [nuevoPrecioCabanaVal, setNuevoPrecioCabanaVal] = useState('');
   const [guardandoPrecioCabana, setGuardandoPrecioCabana] = useState(false);
 
-  // Datos del Usuario Administrador Logueado
+  
   const [usuarioLogueado, setUsuarioLogueado] = useState(() => {
     return JSON.parse(localStorage.getItem('adminUsuario') || '{}');
   });
@@ -68,11 +68,11 @@ export default function Admin({ setAutenticado }) {
     }
   }, [navigate]);
 
-  // Estado para abrir/cerrar el menú desplegable del perfil
+  // estado para abrir/cerrar el menú desplegable del perfil
   const [menuPerfilAbierto, setMenuPerfilAbierto] = useState(false);
   const menuRef = useRef(null);
 
-  // Modal Mini Panel de Perfil
+  // modal mini panel de perfil
   const [mostrarModalPerfil, setMostrarModalPerfil] = useState(false);
   const [editNombre, setEditNombre] = useState('');
   const [editApellido, setEditApellido] = useState('');
@@ -82,25 +82,25 @@ export default function Admin({ setAutenticado }) {
   const [guardandoPerfil, setGuardandoPerfil] = useState(false);
   const [errorPerfil, setErrorPerfil] = useState('');
 
-  // Estados para Filtros y Buscador en la Lista de Reservas
+  // estados para filtros y buscador en la Lista de reservas
   const [busquedaTexto, setBusquedaTexto] = useState('');
   const [filtroBungalow, setFiltroBungalow] = useState('todos');
   const [filtroEstado, setFiltroEstado] = useState('todos');
 
-  // Estados para Formulario de Nuevo Usuario
+  // estados para formulario de nuevo usuario
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [nuevoApellido, setNuevoApellido] = useState('');
   const [nuevoCorreo, setNuevoCorreo] = useState('');
   const [nuevaPassword, setNuevaPassword] = useState('');
   const [nuevoRol, setNuevoRol] = useState('cliente');
 
-  // Modal de Confirmación de Seguridad Admin para Crear Usuario
+  // modal de confirmación de seguridad admin para crear usuario
   const [mostrarModalAuth, setMostrarModalAuth] = useState(false);
   const [adminPasswordConfirm, setAdminPasswordConfirm] = useState('');
   const [guardandoUsuario, setGuardandoUsuario] = useState(false);
   const [mensajeUserError, setMensajeUserError] = useState('');
 
-  // Estado para precio manual negociado en reserva manual
+  // estado para precio manual negociado en reserva manual
   const [precioManualAdmin, setPrecioManualAdmin] = useState('');
 
   // ESTADOS PARA ACCIONES SEGURAS DE USUARIO
@@ -136,7 +136,7 @@ export default function Admin({ setAutenticado }) {
     setModalExitoAbierto(true);
   };
 
-  // Cerrar menú desplegable al hacer clic fuera
+  // Cerrar menu desplegable al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -147,7 +147,7 @@ export default function Admin({ setAutenticado }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 1. Cargar reservas, cabañas y usuarios desde la API
+  // 1. Cargar reservas, cabañas y usuarios desde la api
   const obtenerDatos = async () => {
     setCargando(true);
     try {
@@ -187,7 +187,7 @@ export default function Admin({ setAutenticado }) {
     obtenerDatos();
   }, []);
 
-  // Cargar fechas ocupadas para el modal de crear reserva según la cabaña elegida
+  // Cargar fechas ocupadas para el modal de crear reserva segun la cabaña elegida
   useEffect(() => {
     if (!reservaCabanaId) {
       setReservaFechasOcupadas([]);
@@ -255,7 +255,7 @@ export default function Admin({ setAutenticado }) {
     setReservaFechasSeleccionadas(update);
   };
 
-  // Cálculo de total con soporte para precio manual negociado
+  // Calculo de total con soporte para precio manual negociado
   const calcularTotalAdminReserva = () => {
     if (precioManualAdmin !== '' && !isNaN(precioManualAdmin)) {
       return Number(precioManualAdmin);
@@ -269,7 +269,7 @@ export default function Admin({ setAutenticado }) {
     return dias > 0 ? dias * Number(cabanaSeleccionada.precio_noche) : 0;
   };
 
-  // Función para guardar el nuevo precio de una cabaña (Temporada Alta)
+  // Funcion para guardar el nuevo precio de una cabaña 
   const handleGuardarPrecioCabana = async (idBungalow) => {
     if (!nuevoPrecioCabanaVal || isNaN(nuevoPrecioCabanaVal) || Number(nuevoPrecioCabanaVal) < 0) {
       mostrarAlertaExito('Por favor ingresa un precio válido.');
@@ -926,7 +926,7 @@ export default function Admin({ setAutenticado }) {
         }
       `}</style>
 
-      {/* Encabezado Principal */}
+      {/* encabezado principal */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', backgroundColor: '#2e4d25', color: 'white', padding: '15px 20px', borderRadius: '8px', flexWrap: 'wrap', gap: '15px' }}>
         <h1 style={{ margin: 0, fontSize: '22px' }}>🛠️ Panel Administrador - Finca Don Litos</h1>
 
@@ -939,7 +939,7 @@ export default function Admin({ setAutenticado }) {
             🔄 Actualizar
           </button>
 
-          {/* Menu Desplegable de Perfil */}
+          {/* menu desplegable de perfil */}
           <div ref={menuRef} style={{ position: 'relative' }}>
             <div
               onClick={() => setMenuPerfilAbierto(!menuPerfilAbierto)}
@@ -976,7 +976,7 @@ export default function Admin({ setAutenticado }) {
               </div>
             </div>
 
-            {/* Dropdown flotante */}
+            {/* dropdown flotante */}
             {menuPerfilAbierto && (
               <div style={{
                 position: 'absolute',
@@ -1014,7 +1014,7 @@ export default function Admin({ setAutenticado }) {
                     borderBottom: '1px solid #eee'
                   }}
                 >
-                  ⚙️ Editar Perfil
+                   Editar Perfil
                 </button>
 
                 <button
@@ -1034,7 +1034,7 @@ export default function Admin({ setAutenticado }) {
                     gap: '8px'
                   }}
                 >
-                  🚪 Cerrar Sesión
+                   Cerrar Sesión
                 </button>
               </div>
             )}
@@ -1042,7 +1042,7 @@ export default function Admin({ setAutenticado }) {
         </div>
       </header>
 
-      {/* Selector de Pestañas */}
+      {/* selector de pestañas */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #ccc', paddingBottom: '10px', flexWrap: 'wrap' }}>
         <button
           onClick={() => setTabActiva('calendario')}
@@ -1130,7 +1130,7 @@ export default function Admin({ setAutenticado }) {
         </div>
       ) : (
         <>
-          {/* PESTAÑA 1: CALENDARIO DE OCUPACIÓN */}
+          {/* PESTAÑA 1: CALENDARIO DE OCUPACION */}
           {tabActiva === 'calendario' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
               <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
@@ -1389,7 +1389,7 @@ export default function Admin({ setAutenticado }) {
             </div>
           )}
 
-          {/* PESTAÑA NUEVA: GESTIÓN DE CABAÑAS Y PRECIOS */}
+          {/* PESTAÑA NUEVA: GESTION DE CABAÑAS Y PRECIOS */}
           {tabActiva === 'cabanas' && (
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h3 style={{ marginTop: 0, color: '#2e4d25' }}>🏡 Gestión de Precios de Cabañas (Temporada Alta / Regular)</h3>
@@ -1447,7 +1447,7 @@ export default function Admin({ setAutenticado }) {
                           }}
                           style={{ width: '100%', backgroundColor: '#17a2b8', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
                         >
-                          ✏️ Editar Precio
+                           Editar Precio
                         </button>
                       )}
                     </div>
@@ -1635,7 +1635,7 @@ export default function Admin({ setAutenticado }) {
                       fontSize: '13px'
                     }}
                   >
-                    📥 Descargar Excel (.csv)
+                     Descargar Excel 
                   </button>
                 </div>
               </div>
@@ -1986,7 +1986,7 @@ export default function Admin({ setAutenticado }) {
                 {reservaErrorFecha && <p style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px' }}>{reservaErrorFecha}</p>}
               </div>
 
-              {/* INPUT DE PRECIO EDITABLE (NEGOCIACIÓN) */}
+              {/* INPUT DE PRECIO EDITABLE*/}
               <div style={{ backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#2e4d25' }}>
                   Total de la Reserva (Editable si hubo negociación):
@@ -2168,7 +2168,7 @@ export default function Admin({ setAutenticado }) {
                       }}
                       style={{ backgroundColor: '#17a2b8', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
                     >
-                      ✏️ Editar Comprobante
+                       Editar Comprobante
                     </button>
                     <button
                       type="button"

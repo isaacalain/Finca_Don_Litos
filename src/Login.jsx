@@ -8,7 +8,7 @@ export default function Login({ setAutenticado }) {
   const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
   const [mostrarPassword, setMostrarPassword] = useState(false);
-  // Estados para el Modal de Crear Cuenta (Solo Clientes)
+  // estados para el modal de crear cuenta 
   const [mostrarModalRegistro, setMostrarModalRegistro] = useState(false);
   const [regNombre, setRegNombre] = useState('');
   const [regApellidos, setRegApellidos] = useState('');
@@ -17,14 +17,14 @@ export default function Login({ setAutenticado }) {
   const [errorRegistro, setErrorRegistro] = useState('');
   const [registrando, setRegistrando] = useState(false);
 
-  // Estados para el Modal de Recuperar Contraseña
+  // estados para el modal de recuperar contraseña
   const [mostrarModalForgot, setMostrarModalForgot] = useState(false);
   const [forgotCorreo, setForgotCorreo] = useState('');
   const [forgotMensaje, setForgotMensaje] = useState('');
   const [forgotError, setForgotError] = useState('');
   const [forgotCargando, setForgotCargando] = useState(false);
 
-  // Manejar el Login 
+  // manejar el login 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -66,7 +66,7 @@ export default function Login({ setAutenticado }) {
     }
   };
 
-  // Continuar como Visitante
+  // continuar como visitante
   const handleContinuarComoVisitante = () => {
     const visitanteUser = {
       id_usuario: 0,
@@ -82,7 +82,7 @@ export default function Login({ setAutenticado }) {
     navigate('/cabanas', { replace: true });
   };
 
-  // Crear cuenta de cliente nueva desde el login
+  // crear cuenta de cliente nueva desde el login
   const handleCrearCuentaCliente = async (e) => {
     e.preventDefault();
     setErrorRegistro('');
@@ -133,7 +133,7 @@ export default function Login({ setAutenticado }) {
     }
   };
 
-  // Enviar solicitud de recuperación de contraseña
+  // enviar solicitud de recuperacion de contraseña
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setForgotError('');
@@ -200,7 +200,7 @@ export default function Login({ setAutenticado }) {
               </button>
             </div>
 
-            {/* Contenedor relativo para alinear el input */}
+            {/* contenedor relativo para alinear el input */}
             <div style={{ position: 'relative', width: '100%' }}>
               <input
                 type={mostrarPassword ? 'text' : 'password'} 

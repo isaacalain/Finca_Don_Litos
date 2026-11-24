@@ -205,7 +205,7 @@ app.post('/api/forgot-password', async (req, res) => {
             <h2 style="color: #2e4d25;">Recuperación de Contraseña</h2>
             <p>Hola <strong>${usuario.nombre}</strong>,</p>
             <p>Has solicitado restablecer tu contraseña. Haz clic en el siguiente botón para continuar:</p>
-            <a href="${enlaceReset}" style="display: inline-block; background-color: #2e4d25; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 15px 0;">Restablecer Contraseña</a>
+            <a href="${enlaceReset}" data-clicktrack="off" style="display: inline-block; background-color: #2e4d25; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 15px 0;">Restablecer Contraseña</a>
             <p>Este enlace expirará en 15 minutos.</p>
             <p>Si tú no solicitaste esto, puedes ignorar este mensaje.</p>
           </div>
